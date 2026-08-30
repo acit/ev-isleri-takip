@@ -1,0 +1,41 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Gradient background -->
+    <path
+        android:fillColor="#1A237E"
+        android:pathData="M0,0 L108,0 L108,108 L0,108 Z" />
+
+    <!-- Subtle circle decoration -->
+    <path
+        android:fillColor="#283593"
+        android:pathData="M54,54 m-40,0 a40,40 0 1,1 80,0 a40,40 0 1,1 -80,0" />
+
+    <!-- Inner glow -->
+    <path
+        android:fillColor="#303F9F"
+        android:pathData="M54,54 m-28,0 a28,28 0 1,1 56,0 a28,28 0 1,1 -56,0" />
+
+    <!-- Stars decoration -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M22,24 m-1.2,0 a1.2,1.2 0 1,1 2.4,0 a1.2,1.2 0 1,1 -2.4,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M86,20 m-0.8,0 a0.8,0.8 0 1,1 1.6,0 a0.8,0.8 0 1,1 -1.6,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M88,40 m-1,0 a1,1 0 1,1 2,0 a1,1 0 1,1 -2,0" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M18,44 m-0.6,0 a0.6,0.6 0 1,1 1.2,0 a0.6,0.6 0 1,1 -1.2,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M28,16 m-1.5,0 a1.5,1.5 0 1,1 3,0 a1.5,1.5 0 1,1 -3,0" />
+    <path
+        android:fillColor="#FFD54F"
+        android:pathData="M80,58 m-1,0 a1,1 0 1,1 2,0 a1,1 0 1,1 -2,0" />
+</vector>

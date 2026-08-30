@@ -1,14 +1,11 @@
-# Test Complete ignore files: https://support.smartbear.com/viewarticle/68002/
-
-# Tester-specific Settings
-*.tcCFGExtender
-*.tcLS
-
-# Type library declarations
-*.tlb
-
-# Log files
-*.tcLogs
-
-# Backup files
-*.bak
+app/build
+*.apk
+*.aab
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/captures
+local.properties
