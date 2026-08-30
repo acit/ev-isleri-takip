@@ -33,21 +33,22 @@ const val DAILY_EXERCISE_GOAL_MINUTES = 30
 
 @Composable
 fun HealthDashboardScreen(vm: MainViewModel) {
-    val members by vm.members.collectAsState()
+    // Use ViewModel derived states (already unwrapped by `by` in ViewModel)
+    val todayCalories = vm.todayCalories
+    val todayWaterMl = vm.todayWaterMl
     val calorieLogs by vm.calorieLogs.collectAsState()
     val workoutLogs by vm.workoutLogs.collectAsState()
-    val waterLogs by vm.waterLogs.collectAsState()
     val sleepLogs by vm.sleepLogs.collectAsState()
+    val waterLogs by vm.waterLogs.collectAsState()
 
     val todayStr = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date()) }
 
-    // Today's data
-    val todayCalories = calorieLogs.filter { it.date == todayStr }.sumOf { it.calories }
-    val todayWater = waterLogs.filter { it.date == todayStr }.sumOf { it.amountMl }
-    val todayWorkouts = workoutLogs.filter { it.date == todayStr }
-    val todayExerciseMinutes = todayWorkouts.sumOf { it.duration }
-    val todayCaloriesBurned = todayWorkouts.sumOf { it.caloriesBurned }
-    val todaySleep = sleepLogs.filter { it.date == todayStr }
+    // Use remember with todayStr key to avoid recomputing on unrelated state changes
+    val todayWorkouts = remember(workoutLogs, todayStr) { workoutLogs.filter { it.date == todayStr } }
+    val todayExerciseMinutes = remember(todayWorkouts) { todayWorkouts.sumOf { it.duration } }
+    val todayCaloriesBurned = remember(todayWorkouts) { todayWorkouts.sumOf { it.caloriesBurned } }
+    val todaySleep = remember(sleepLogs, todayStr) { sleepLogs.filter { it.date == todayStr } }
+    val todayMeals = remember(calorieLogs, todayStr) { calorieLogs.filter { it.date == todayStr } }
 
     // Show add dialogs
     var showAddWater by remember { mutableStateOf(false) }
@@ -79,9 +80,9 @@ fun HealthDashboardScreen(vm: MainViewModel) {
             HealthSummaryCard(
                 modifier = Modifier.weight(1f),
                 icon = "\uD83D\uDCA7",
-                value = "${todayWater}ml",
+                value = "${todayWaterMl}ml",
                 label = "Su",
-                progress = (todayWater.toFloat() / DAILY_WATER_GOAL_ML).coerceIn(0f, 1f),
+                progress = (todayWaterMl.toFloat() / DAILY_WATER_GOAL_ML).coerceIn(0f, 1f),
                 color = Color(0xFF3498DB),
                 goal = "${DAILY_WATER_GOAL_ML / 1000}L hedef",
                 onClick = { showAddWater = true }
@@ -144,10 +145,9 @@ fun HealthDashboardScreen(vm: MainViewModel) {
                 Text("\uD83C\uDF7D\uFE0F Kalori Dağılımı", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(12.dp))
 
-                val todayMeals = calorieLogs.filter { it.date == todayStr }
-                val totalProtein = todayMeals.sumOf { it.protein }
-                val totalCarbs = todayMeals.sumOf { it.carbs }
-                val totalFat = todayMeals.sumOf { it.fat }
+                val totalProtein = remember(todayMeals) { todayMeals.sumOf { it.protein } }
+                val totalCarbs = remember(todayMeals) { todayMeals.sumOf { it.carbs } }
+                val totalFat = remember(todayMeals) { todayMeals.sumOf { it.fat } }
 
                 if (todayMeals.isEmpty()) {
                     Text(
@@ -204,9 +204,9 @@ fun HealthDashboardScreen(vm: MainViewModel) {
                 }
 
                 // Today's water
-                val waterCount = waterLogs.count { it.date == todayStr }
-                if (waterCount > 0) {
-                    allActivities.add(Triple("\uD83D\uDCA7", "$waterCount bardak su içildi", "${todayWater}ml toplam"))
+                val waterLogsToday = remember(waterLogs, todayStr) { waterLogs.filter { it.date == todayStr } }
+                if (waterLogsToday.isNotEmpty()) {
+                    allActivities.add(Triple("\uD83D\uDCA7", "${waterLogsToday.size} bardak su içildi", "${todayWaterMl}ml toplam"))
                 }
 
                 // Today's sleep

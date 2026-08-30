@@ -161,7 +161,7 @@ fun NotesScreen(vm: MainViewModel) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(filteredNotes) { note ->
+                items(filteredNotes, key = { it.id }) { note ->
                     NoteCard(
                         note = note,
                         onClick = { editingNote = note },

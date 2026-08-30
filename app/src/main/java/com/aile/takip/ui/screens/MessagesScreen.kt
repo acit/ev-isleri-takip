@@ -9,6 +9,8 @@ import android.graphics.BitmapFactory
 import android.util.Base64
 import androidx.compose.animation.*
 import androidx.compose.ui.graphics.asImageBitmap
+import com.aile.takip.utils.BitmapCache
+import com.aile.takip.utils.rememberBase64Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -247,13 +249,11 @@ fun MessagesScreen(vm: MainViewModel) {
                             .clip(RoundedCornerShape(8.dp))
                             .background(MaterialTheme.colorScheme.surfaceVariant)
                     ) {
-                        // Show thumbnail for images
-                        val bitmap = remember(attachment.base64Data) {
-                            AttachmentHelper.base64ToBitmap(attachment.base64Data)
-                        }
+                        // Show thumbnail for images (uses BitmapCache for performance)
+                        val bitmap = rememberBase64Bitmap(attachment.base64Data, maxWidth = 200)
                         if (bitmap != null) {
                             androidx.compose.foundation.Image(
-                                bitmap = bitmap.asImageBitmap(),
+                                bitmap = bitmap,
                                 contentDescription = attachment.fileName,
                                 modifier = Modifier.fillMaxSize(),
                                 contentScale = androidx.compose.ui.layout.ContentScale.Crop

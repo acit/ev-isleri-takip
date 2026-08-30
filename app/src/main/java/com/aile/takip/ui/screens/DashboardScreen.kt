@@ -20,47 +20,48 @@ data class ModuleCard(val route: String, val icon: String, val title: String, va
 
 @Composable
 fun DashboardScreen(nav: NavController, vm: MainViewModel) {
-    val tasks by vm.tasks.collectAsState()
-    val shopping by vm.shoppingItems.collectAsState()
-    val invoices by vm.invoices.collectAsState()
-    val members by vm.members.collectAsState()
-    val messages by vm.messages.collectAsState()
+    // Use derived states from ViewModel instead of collecting raw lists
+    // This prevents recomposition when unrelated data changes
+    val pendingTasks = vm.pendingTaskCount
+    val pendingInvoices = vm.pendingInvoiceCount
+    val uncheckedShopping = vm.uncheckedShoppingCount
+    val activeNoteCount = vm.activeNoteCount
+    val totalMembers = vm.totalMembers
     val mealPlans by vm.mealPlans.collectAsState()
     val clubs by vm.sportsClubs.collectAsState()
-    val workouts by vm.workoutLogs.collectAsState()
-    val calories by vm.calorieLogs.collectAsState()
-    val notes by vm.notes.collectAsState()
     val activeReminders by vm.activeReminders.collectAsState()
+    val tasksSize by vm.tasks.collectAsState()
+    val shoppingSize by vm.shoppingItems.collectAsState()
+    val messagesSize by vm.messages.collectAsState()
+    val caloriesSize by vm.calorieLogs.collectAsState()
 
-    val pendingTasks = tasks.count { it.status == "bekleyen" }
-    val pendingInvoices = invoices.count { it.status == "pending" }
-    val uncheckedShopping = shopping.count { !it.checked }
-
-    val modules = listOf(
-        ModuleCard("tasks", "\uD83D\uDCCB", "Görevler", "$pendingTasks bekleyen"),
-        ModuleCard("inventory", "\uD83D\uDCE6", "Envanter", "${tasks.size} ürün"),
-        ModuleCard("shopping", "\uD83D\uDED2", "Alışveriş", "$uncheckedShopping listede"),
-        ModuleCard("budget", "\uD83D\uDCB0", "Bütçe", "Harcama takibi"),
-        ModuleCard("invoices", "\uD83E\uDDFE", "Faturalar", "$pendingInvoices bekleyen"),
-        ModuleCard("messages", "\uD83D\uDCAC", "Mesajlar", "${messages.size} mesaj"),
-        ModuleCard("calendar", "\uD83D\uDCC5", "Takvim", "Olaylar"),
-        ModuleCard("meal-plan", "\uD83C\uDF7D\uFE0F", "Yemek", "${mealPlans.size} plan"),
-        ModuleCard("sports", "\uD83C\uDFC3", "Spor", "${clubs.size} klüp"),
-        ModuleCard("calories", "\uD83D\uDCCA", "Kalori", "${calories.size} kayıt"),
-        ModuleCard("health", "\uD83D\uDCCA", "Sağlık", "Genel bakış"),
-        ModuleCard("gamification", "\uD83C\uDFAE", "Oyun", "${members.size} üye"),
-        ModuleCard("mental-load", "\uD83E\uDDE0", "Zihinsel Yük", "Dağılım"),
-        ModuleCard("notes", "\uD83D\uDCDD", "Notlar", "${notes.size} not"),
-        ModuleCard("reminders", "\uD83D\uDD14", "Hatırlatıcılar", "${activeReminders.size} aktif"),
-        ModuleCard("menstrual", "\uD83D\uDC95", "Döngü Takibi", "Kişisel"),
-        ModuleCard("sync-settings", "\uD83D\uDD04", "Senkron", "Aile verisi"),
-        ModuleCard("profile", "\u2699\uFE0F", "Profil", "Ayarlar"),
-    )
+    val modules = remember(pendingTasks, pendingInvoices, uncheckedShopping, activeNoteCount, totalMembers, mealPlans.size, clubs.size, activeReminders.size, tasksSize.size, shoppingSize.size, messagesSize.size, caloriesSize.size) {
+        listOf(
+            ModuleCard("tasks", "\uD83D\uDCCB", "Görevler", "$pendingTasks bekleyen"),
+            ModuleCard("inventory", "\uD83D\uDCE6", "Envanter", "${tasksSize.size} ürün"),
+            ModuleCard("shopping", "\uD83D\uDED2", "Alışveriş", "$uncheckedShopping listede"),
+            ModuleCard("budget", "\uD83D\uDCB0", "Bütçe", "Harcama takibi"),
+            ModuleCard("invoices", "\uD83E\uDDFE", "Faturalar", "$pendingInvoices bekleyen"),
+            ModuleCard("messages", "\uD83D\uDCAC", "Mesajlar", "${messagesSize.size} mesaj"),
+            ModuleCard("calendar", "\uD83D\uDCC5", "Takvim", "Olaylar"),
+            ModuleCard("meal-plan", "\uD83C\uDF7D\uFE0F", "Yemek", "${mealPlans.size} plan"),
+            ModuleCard("sports", "\uD83C\uDFC3", "Spor", "${clubs.size} klüp"),
+            ModuleCard("calories", "\uD83D\uDCCA", "Kalori", "${caloriesSize.size} kayıt"),
+            ModuleCard("health", "\uD83D\uDCCA", "Sağlık", "Genel bakış"),
+            ModuleCard("gamification", "\uD83C\uDFAE", "Oyun", "$totalMembers üye"),
+            ModuleCard("mental-load", "\uD83E\uDDE0", "Zihinsel Yük", "Dağılım"),
+            ModuleCard("notes", "\uD83D\uDCDD", "Notlar", "$activeNoteCount not"),
+            ModuleCard("reminders", "\uD83D\uDD14", "Hatırlatıcılar", "${activeReminders.size} aktif"),
+            ModuleCard("menstrual", "\uD83D\uDC95", "Döngü Takibi", "Kişisel"),
+            ModuleCard("sync-settings", "\uD83D\uDD04", "Senkron", "Aile verisi"),
+            ModuleCard("profile", "\u2699\uFE0F", "Profil", "Ayarlar"),
+        )
+    }
 
     Column(modifier = Modifier.padding(16.dp)) {
         Text("\uD83C\uDFE0 Ana Sayfa", style = MaterialTheme.typography.headlineMedium)
         Spacer(Modifier.height(4.dp))
-        Text("${tasks.size} görev, ${shopping.size} ürün, ${members.size} aile üyesi",
+        Text("${tasksSize.size} görev, ${shoppingSize.size} ürün, $totalMembers aile üyesi",
             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(12.dp))
         LazyVerticalGrid(
@@ -68,7 +69,7 @@ fun DashboardScreen(nav: NavController, vm: MainViewModel) {
             verticalArrangement = Arrangement.spacedBy(10.dp),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            items(modules) { m ->
+            items(modules, key = { it.route }) { m ->
                 Card(
                     modifier = Modifier.clickable { nav.navigate(m.route) },
                     shape = RoundedCornerShape(14.dp),

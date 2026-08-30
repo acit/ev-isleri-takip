@@ -43,9 +43,11 @@ object AttachmentHelper {
     }
 
     /**
-     * Decode Base64 string back to Bitmap
+     * Decode Base64 string back to Bitmap (uses BitmapCache for performance)
      */
     fun base64ToBitmap(base64: String): Bitmap? {
+        // Check cache first
+        BitmapCache.getCached(base64)?.let { return it }
         return try {
             val bytes = Base64.decode(base64, Base64.NO_WRAP)
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size)

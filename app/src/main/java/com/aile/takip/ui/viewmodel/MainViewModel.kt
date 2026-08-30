@@ -9,7 +9,9 @@ import com.aile.takip.data.repository.FamilyRepository
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.derivedStateOf
 import com.aile.takip.sync.FirebaseSyncService
+import com.aile.takip.utils.BitmapCache
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -64,6 +66,22 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val allReminders = repo.allReminders.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val waterLogs = repo.waterLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val sleepLogs = repo.sleepLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // ===== OPTIMIZED DERIVED STATES =====
+    // These avoid recomputing on every recomposition — only changes when source changes.
+    val pendingTaskCount by derivedStateOf { tasks.value.count { it.status == "bekleyen" } }
+    val pendingInvoiceCount by derivedStateOf { invoices.value.count { it.status == "pending" } }
+    val uncheckedShoppingCount by derivedStateOf { shoppingItems.value.count { !it.checked } }
+    val activeNoteCount by derivedStateOf { notes.value.count { !it.isArchived } }
+    val pinnedNoteCount by derivedStateOf { notes.value.count { it.isPinned && !it.isArchived } }
+    val todayCalories by derivedStateOf {
+        calorieLogs.value.filter { it.date == todayStr }.sumOf { it.calories }
+    }
+    val todayWaterMl by derivedStateOf {
+        waterLogs.value.filter { it.date == todayStr }.sumOf { it.amountMl.toLong() }.toInt()
+    }
+    val unreadMessageCount by derivedStateOf { messages.value.size }
+    val totalMembers by derivedStateOf { members.value.size }
 
     init {
         // Check if PIN exists
@@ -407,5 +425,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         super.onCleared()
         syncService.stopListening()
+        BitmapCache.clear()
     }
 }

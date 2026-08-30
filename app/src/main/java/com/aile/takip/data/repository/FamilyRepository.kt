@@ -3,6 +3,7 @@ package com.aile.takip.data.repository
 import com.aile.takip.data.dao.*
 import com.aile.takip.data.model.*
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 
 class FamilyRepository(
     private val taskDao: TaskDao,
@@ -26,12 +27,12 @@ class FamilyRepository(
     private val sleepLogDao: SleepLogDao,
 ) {
     // Tasks
-    val tasks: Flow<List<Task>> = taskDao.getAll()
+    val tasks: Flow<List<Task>> = taskDao.getAll().distinctUntilChanged()
     suspend fun upsertTask(t: Task) = taskDao.upsert(t)
     suspend fun deleteTask(t: Task) = taskDao.delete(t)
 
     // Inventory
-    val inventory: Flow<List<InventoryItem>> = inventoryDao.getAll()
+    val inventory: Flow<List<InventoryItem>> = inventoryDao.getAll().distinctUntilChanged()
     suspend fun upsertInventory(i: InventoryItem) = inventoryDao.upsert(i)
     suspend fun deleteInventory(i: InventoryItem) = inventoryDao.delete(i)
 
@@ -51,17 +52,17 @@ class FamilyRepository(
     suspend fun deleteInvoice(i: Invoice) = invoiceDao.delete(i)
 
     // Messages
-    val messages: Flow<List<Message>> = messageDao.getAll()
+    val messages: Flow<List<Message>> = messageDao.getAll().distinctUntilChanged()
     suspend fun upsertMessage(m: Message) = messageDao.upsert(m)
     suspend fun deleteMessage(m: Message) = messageDao.delete(m)
 
     // Shopping
-    val shoppingItems: Flow<List<ShoppingItem>> = shoppingDao.getAll()
+    val shoppingItems: Flow<List<ShoppingItem>> = shoppingDao.getAll().distinctUntilChanged()
     suspend fun upsertShopping(s: ShoppingItem) = shoppingDao.upsert(s)
     suspend fun deleteShopping(s: ShoppingItem) = shoppingDao.delete(s)
 
     // Family Members
-    val members: Flow<List<FamilyMember>> = memberDao.getAll()
+    val members: Flow<List<FamilyMember>> = memberDao.getAll().distinctUntilChanged()
     suspend fun upsertMember(m: FamilyMember) = memberDao.upsert(m)
     suspend fun deleteMember(m: FamilyMember) = memberDao.delete(m)
 
@@ -109,7 +110,7 @@ class FamilyRepository(
     suspend fun markSynced(id: String) = syncEventDao.markSynced(id)
 
     // ========== AİLE NOTLARI ==========
-    val notes: Flow<List<Note>> = noteDao.getAll()
+    val notes: Flow<List<Note>> = noteDao.getAll().distinctUntilChanged()
     fun searchNotes(query: String) = noteDao.search(query)
     fun getArchivedNotes() = noteDao.getArchived()
     fun getNotesByCategory(category: String) = noteDao.getByCategory(category)
@@ -118,8 +119,8 @@ class FamilyRepository(
     suspend fun getAllNotesOnce() = noteDao.getAllOnce()
 
     // ========== HATIRLATICILAR ==========
-    val activeReminders: Flow<List<Reminder>> = reminderDao.getActive()
-    val allReminders: Flow<List<Reminder>> = reminderDao.getAll()
+    val activeReminders: Flow<List<Reminder>> = reminderDao.getActive().distinctUntilChanged()
+    val allReminders: Flow<List<Reminder>> = reminderDao.getAll().distinctUntilChanged()
     val completedReminders: Flow<List<Reminder>> = reminderDao.getCompleted()
     fun getActiveByCategory(category: String) = reminderDao.getActiveByCategory(category)
     suspend fun getDueReminders(now: Long) = reminderDao.getDueReminders(now)
