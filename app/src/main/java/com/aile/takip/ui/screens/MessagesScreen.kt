@@ -1,8 +1,14 @@
 package com.aile.takip.ui.screens
 
+import android.net.Uri
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import android.graphics.BitmapFactory
+import android.util.Base64
 import androidx.compose.animation.*
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -32,9 +38,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.aile.takip.data.model.Attachment
 import com.aile.takip.data.model.Message
 import com.aile.takip.ui.components.PageScaffold
 import com.aile.takip.ui.viewmodel.MainViewModel
+import com.aile.takip.utils.AttachmentHelper
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -62,10 +72,28 @@ fun MessagesScreen(vm: MainViewModel) {
     var inputText by remember { mutableStateOf("") }
     var showEmoji by remember { mutableStateOf(false) }
     var showQuickReplies by remember { mutableStateOf(false) }
+    var pendingAttachments by remember { mutableStateOf<List<Attachment>>(emptyList()) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
     val context = LocalContext.current
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            val base64 = AttachmentHelper.uriToBase64(context, it)
+            if (base64 != null) {
+                val fileName = uri.lastPathSegment ?: "dosya"
+                val mimeType = context.contentResolver.getType(it) ?: "image/jpeg"
+                pendingAttachments = pendingAttachments + Attachment(
+                    fileName = fileName,
+                    mimeType = mimeType,
+                    base64Data = base64
+                )
+            }
+        }
+    }
 
     // Auto-scroll to bottom when new message arrives
     LaunchedEffect(messages.size) {
@@ -75,9 +103,11 @@ fun MessagesScreen(vm: MainViewModel) {
     }
 
     fun sendMessage() {
-        if (inputText.isNotBlank()) {
-            vm.sendMessage(inputText.trim())
+        if (inputText.isNotBlank() || pendingAttachments.isNotEmpty()) {
+            val attachmentsJson = if (pendingAttachments.isNotEmpty()) Gson().toJson(pendingAttachments) else ""
+            vm.sendMessage(inputText.trim(), attachments = attachmentsJson)
             inputText = ""
+            pendingAttachments = emptyList()
             showEmoji = false
             showQuickReplies = false
         }
@@ -203,6 +233,60 @@ fun MessagesScreen(vm: MainViewModel) {
             }
         }
 
+        // Pending attachments preview
+        if (pendingAttachments.isNotEmpty()) {
+            LazyRow(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(pendingAttachments.size) { index ->
+                    val attachment = pendingAttachments[index]
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(MaterialTheme.colorScheme.surfaceVariant)
+                    ) {
+                        // Show thumbnail for images
+                        val bitmap = remember(attachment.base64Data) {
+                            AttachmentHelper.base64ToBitmap(attachment.base64Data)
+                        }
+                        if (bitmap != null) {
+                            androidx.compose.foundation.Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = attachment.fileName,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                Icons.Default.Description,
+                                contentDescription = null,
+                                modifier = Modifier.align(Alignment.Center),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        // Remove button
+                        IconButton(
+                            onClick = {
+                                pendingAttachments = pendingAttachments.toMutableList().apply { removeAt(index) }
+                            },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .size(20.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "Kaldır",
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
         // Input area
         Surface(
             modifier = Modifier.fillMaxWidth(),
@@ -229,6 +313,15 @@ fun MessagesScreen(vm: MainViewModel) {
                             Icons.Default.Speed,
                             contentDescription = "Hızlı Yanıt",
                             tint = if (showQuickReplies) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // Attachment button
+                    IconButton(onClick = { galleryLauncher.launch("image/*") }) {
+                        Icon(
+                            Icons.Default.AttachFile,
+                            contentDescription = "Ekle",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 

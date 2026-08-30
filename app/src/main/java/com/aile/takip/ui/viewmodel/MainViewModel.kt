@@ -22,7 +22,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         db.invoiceDao(), db.messageDao(), db.shoppingDao(),
         db.memberDao(), db.mealPlanDao(),
         db.sportsClubDao(), db.workoutLogDao(), db.calorieLogDao(),
-        db.menstrualCycleDao(), db.authDao(), db.syncEventDao()
+        db.menstrualCycleDao(), db.authDao(), db.syncEventDao(),
+        db.noteDao(), db.reminderDao(),
+        db.waterLogDao(), db.sleepLogDao()
     )
 
     private val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
@@ -57,6 +59,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val calorieLogs = repo.calorieLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val menstrualCycles = repo.menstrualCycles.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val unsyncedEvents = repo.unsyncedEvents.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val notes = repo.notes.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val activeReminders = repo.activeReminders.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val allReminders = repo.allReminders.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val waterLogs = repo.waterLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val sleepLogs = repo.sleepLogs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     init {
         // Check if PIN exists
@@ -131,8 +138,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteInvoice(i: Invoice) { viewModelScope.launch { repo.deleteInvoice(i); addSyncEvent("invoices", "delete") } }
 
     // ===== MESSAGES =====
-    fun sendMessage(content: String, senderName: String = "Ben") {
-        viewModelScope.launch { repo.upsertMessage(Message(senderName = senderName, senderId = "self", content = content)); addSyncEvent("messages", "insert") }
+    fun sendMessage(content: String, senderName: String = "Ben", attachments: String = "") {
+        viewModelScope.launch { repo.upsertMessage(Message(senderName = senderName, senderId = "self", content = content, attachments = attachments)); addSyncEvent("messages", "insert") }
     }
     fun deleteMessage(m: Message) { viewModelScope.launch { repo.deleteMessage(m) } }
 
@@ -242,6 +249,159 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun disconnectFirebase() {
         syncService.disconnect()
         syncEnabled.value = false
+    }
+
+    // ===== NOTES =====
+    fun addNote(title: String, content: String = "", category: String = "Genel", color: String = "#3498DB", attachments: String = "", createdBy: String = "") {
+        viewModelScope.launch {
+            repo.upsertNote(Note(title = title, content = content, category = category, color = color, attachments = attachments, createdBy = createdBy))
+            addSyncEvent("notes", "insert")
+        }
+    }
+
+    fun updateNote(note: Note) {
+        viewModelScope.launch {
+            repo.upsertNote(note)
+            addSyncEvent("notes", "update")
+        }
+    }
+
+    fun togglePinNote(note: Note) {
+        viewModelScope.launch {
+            repo.upsertNote(note.copy(isPinned = !note.isPinned))
+            addSyncEvent("notes", "update")
+        }
+    }
+
+    fun archiveNote(note: Note) {
+        viewModelScope.launch {
+            repo.upsertNote(note.copy(isArchived = !note.isArchived))
+            addSyncEvent("notes", "update")
+        }
+    }
+
+    fun deleteNote(note: Note) {
+        viewModelScope.launch {
+            repo.deleteNote(note)
+            addSyncEvent("notes", "delete")
+        }
+    }
+
+    // ===== REMINDERS =====
+    fun addReminder(
+        title: String,
+        description: String = "",
+        reminderTime: Long,
+        repeatType: String = "once",
+        category: String = "Genel",
+        priority: String = "orta",
+        alarmSound: String = "default",
+        vibrate: Boolean = true,
+        snoozeMinutes: Int = 15,
+        repeatDays: String = "",
+        repeatInterval: Int = 1,
+        repeatEndDate: Long = 0L,
+        linkedId: String = "",
+        linkedType: String = "",
+        createdBy: String = ""
+    ) {
+        viewModelScope.launch {
+            repo.upsertReminder(
+                Reminder(
+                    title = title,
+                    description = description,
+                    reminderTime = reminderTime,
+                    repeatType = repeatType,
+                    repeatDays = repeatDays,
+                    repeatInterval = repeatInterval,
+                    repeatEndDate = repeatEndDate,
+                    category = category,
+                    priority = priority,
+                    alarmSound = alarmSound,
+                    vibrate = vibrate,
+                    snoozeMinutes = snoozeMinutes,
+                    linkedId = linkedId,
+                    linkedType = linkedType,
+                    createdBy = createdBy,
+                    nextFireAt = reminderTime
+                )
+            )
+            addSyncEvent("reminders", "insert")
+        }
+    }
+
+    fun completeReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            repo.upsertReminder(reminder.copy(isCompleted = true))
+            addSyncEvent("reminders", "update")
+        }
+    }
+
+    fun snoozeReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            val minutes = reminder.snoozeMinutes
+            val snoozeUntil = System.currentTimeMillis() + (minutes * 60 * 1000)
+            repo.upsertReminder(reminder.copy(isSnoozed = true, snoozeUntil = snoozeUntil))
+            addSyncEvent("reminders", "update")
+        }
+    }
+
+    fun updateReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            repo.upsertReminder(reminder)
+            addSyncEvent("reminders", "update")
+        }
+    }
+
+    fun deleteReminder(reminder: Reminder) {
+        viewModelScope.launch {
+            repo.deleteReminder(reminder)
+            addSyncEvent("reminders", "delete")
+        }
+    }
+
+    // ===== WATER LOGS =====
+    fun addWater(memberId: String, amountMl: Int = 250, drinkType: String = "Su", date: String = todayStr) {
+        viewModelScope.launch {
+            repo.upsertWater(WaterLog(memberId = memberId, amountMl = amountMl, drinkType = drinkType, date = date))
+            addSyncEvent("water_logs", "insert")
+        }
+    }
+
+    fun deleteWater(w: WaterLog) {
+        viewModelScope.launch {
+            repo.deleteWater(w)
+            addSyncEvent("water_logs", "delete")
+        }
+    }
+
+    fun totalWater(memberId: String, date: String = todayStr) = repo.totalWater(memberId, date)
+
+    // ===== SLEEP LOGS =====
+    fun addSleep(memberId: String, bedtime: Long, wakeTime: Long, quality: String = "orta", interruptions: Int = 0, notes: String = "", date: String = todayStr) {
+        viewModelScope.launch {
+            val durationMinutes = ((wakeTime - bedtime) / (1000 * 60)).toInt()
+            repo.upsertSleep(
+                SleepLog(
+                    memberId = memberId,
+                    bedtime = bedtime,
+                    wakeTime = wakeTime,
+                    durationMinutes = durationMinutes,
+                    quality = quality,
+                    interruptions = interruptions,
+                    notes = notes,
+                    date = date
+                )
+            )
+            addSyncEvent("sleep_logs", "insert")
+        }
+    }
+
+    fun deleteSleep(s: SleepLog) {
+        viewModelScope.launch {
+            repo.deleteSleep(s)
+            addSyncEvent("sleep_logs", "delete")
+        }
     }
 
     override fun onCleared() {

@@ -20,6 +20,10 @@ class FamilyRepository(
     private val menstrualCycleDao: MenstrualCycleDao,
     private val authDao: AuthDao,
     private val syncEventDao: SyncEventDao,
+    private val noteDao: NoteDao,
+    private val reminderDao: ReminderDao,
+    private val waterLogDao: WaterLogDao,
+    private val sleepLogDao: SleepLogDao,
 ) {
     // Tasks
     val tasks: Flow<List<Task>> = taskDao.getAll()
@@ -103,4 +107,40 @@ class FamilyRepository(
     val unsyncedEvents: Flow<List<SyncEvent>> = syncEventDao.getUnsynced()
     suspend fun upsertSyncEvent(s: SyncEvent) = syncEventDao.upsert(s)
     suspend fun markSynced(id: String) = syncEventDao.markSynced(id)
+
+    // ========== AİLE NOTLARI ==========
+    val notes: Flow<List<Note>> = noteDao.getAll()
+    fun searchNotes(query: String) = noteDao.search(query)
+    fun getArchivedNotes() = noteDao.getArchived()
+    fun getNotesByCategory(category: String) = noteDao.getByCategory(category)
+    suspend fun upsertNote(n: Note) = noteDao.upsert(n)
+    suspend fun deleteNote(n: Note) = noteDao.delete(n)
+    suspend fun getAllNotesOnce() = noteDao.getAllOnce()
+
+    // ========== HATIRLATICILAR ==========
+    val activeReminders: Flow<List<Reminder>> = reminderDao.getActive()
+    val allReminders: Flow<List<Reminder>> = reminderDao.getAll()
+    val completedReminders: Flow<List<Reminder>> = reminderDao.getCompleted()
+    fun getActiveByCategory(category: String) = reminderDao.getActiveByCategory(category)
+    suspend fun getDueReminders(now: Long) = reminderDao.getDueReminders(now)
+    suspend fun getSnoozedReminders(now: Long) = reminderDao.getSnoozedReminders(now)
+    suspend fun upsertReminder(r: Reminder) = reminderDao.upsert(r)
+    suspend fun deleteReminder(r: Reminder) = reminderDao.delete(r)
+    suspend fun getAllRemindersOnce() = reminderDao.getAllOnce()
+
+    // ========== SU TÜKETİMİ ==========
+    val waterLogs: Flow<List<WaterLog>> = waterLogDao.getAll()
+    fun getWaterByMemberAndDate(memberId: String, date: String) = waterLogDao.getByMemberAndDate(memberId, date)
+    fun totalWater(memberId: String, date: String) = waterLogDao.totalAmount(memberId, date)
+    suspend fun upsertWater(w: WaterLog) = waterLogDao.upsert(w)
+    suspend fun deleteWater(w: WaterLog) = waterLogDao.delete(w)
+    suspend fun getAllWaterOnce() = waterLogDao.getAllOnce()
+
+    // ========== UYKU TAKİBİ ==========
+    val sleepLogs: Flow<List<SleepLog>> = sleepLogDao.getAll()
+    fun getSleepByMember(memberId: String) = sleepLogDao.getByMember(memberId)
+    fun getSleepByDate(date: String) = sleepLogDao.getByDate(date)
+    suspend fun upsertSleep(s: SleepLog) = sleepLogDao.upsert(s)
+    suspend fun deleteSleep(s: SleepLog) = sleepLogDao.delete(s)
+    suspend fun getAllSleepOnce() = sleepLogDao.getAllOnce()
 }

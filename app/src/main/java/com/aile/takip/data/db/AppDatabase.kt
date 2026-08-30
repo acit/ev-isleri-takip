@@ -11,9 +11,11 @@ import com.aile.takip.data.model.*
         Invoice::class, Message::class, ShoppingItem::class,
         FamilyMember::class, MealPlan::class,
         SportsClub::class, WorkoutLog::class, CalorieLog::class,
-        MenstrualCycle::class, UserAuth::class, SyncEvent::class
+        MenstrualCycle::class, UserAuth::class, SyncEvent::class,
+        Note::class, Reminder::class,
+        WaterLog::class, SleepLog::class
     ],
-    version = 2,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,6 +34,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun menstrualCycleDao(): MenstrualCycleDao
     abstract fun authDao(): AuthDao
     abstract fun syncEventDao(): SyncEventDao
+    abstract fun noteDao(): NoteDao
+    abstract fun reminderDao(): ReminderDao
+    abstract fun waterLogDao(): WaterLogDao
+    abstract fun sleepLogDao(): SleepLogDao
 
     companion object {
         @Volatile private var INSTANCE: AppDatabase? = null

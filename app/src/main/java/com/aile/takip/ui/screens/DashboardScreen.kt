@@ -29,6 +29,8 @@ fun DashboardScreen(nav: NavController, vm: MainViewModel) {
     val clubs by vm.sportsClubs.collectAsState()
     val workouts by vm.workoutLogs.collectAsState()
     val calories by vm.calorieLogs.collectAsState()
+    val notes by vm.notes.collectAsState()
+    val activeReminders by vm.activeReminders.collectAsState()
 
     val pendingTasks = tasks.count { it.status == "bekleyen" }
     val pendingInvoices = invoices.count { it.status == "pending" }
@@ -45,8 +47,11 @@ fun DashboardScreen(nav: NavController, vm: MainViewModel) {
         ModuleCard("meal-plan", "\uD83C\uDF7D\uFE0F", "Yemek", "${mealPlans.size} plan"),
         ModuleCard("sports", "\uD83C\uDFC3", "Spor", "${clubs.size} klüp"),
         ModuleCard("calories", "\uD83D\uDCCA", "Kalori", "${calories.size} kayıt"),
+        ModuleCard("health", "\uD83D\uDCCA", "Sağlık", "Genel bakış"),
         ModuleCard("gamification", "\uD83C\uDFAE", "Oyun", "${members.size} üye"),
         ModuleCard("mental-load", "\uD83E\uDDE0", "Zihinsel Yük", "Dağılım"),
+        ModuleCard("notes", "\uD83D\uDCDD", "Notlar", "${notes.size} not"),
+        ModuleCard("reminders", "\uD83D\uDD14", "Hatırlatıcılar", "${activeReminders.size} aktif"),
         ModuleCard("menstrual", "\uD83D\uDC95", "Döngü Takibi", "Kişisel"),
         ModuleCard("sync-settings", "\uD83D\uDD04", "Senkron", "Aile verisi"),
         ModuleCard("profile", "\u2699\uFE0F", "Profil", "Ayarlar"),

@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
+import com.aile.takip.notification.ReminderWorker
 import com.aile.takip.ui.screens.*
 import com.aile.takip.ui.theme.*
 import com.aile.takip.ui.viewmodel.MainViewModel
@@ -18,6 +19,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Schedule reminder check worker
+        ReminderWorker.schedulePeriodicCheck(this)
+
         setContent {
             var darkMode by remember { mutableStateOf(false) }
             AileTakipTheme(darkTheme = darkMode) {
@@ -81,6 +86,9 @@ fun MainScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit) {
                 composable("meal-plan") { MealPlanScreen(vm) }
                 composable("gamification") { GamificationScreen(vm) }
                 composable("mental-load") { MentalLoadScreen(vm) }
+                composable("notes") { NotesScreen(vm) }
+                composable("reminders") { ReminderScreen(vm) }
+                composable("health") { HealthDashboardScreen(vm) }
                 // Yeni modüller
                 composable("sports") { SportsClubScreen(vm) }
                 composable("calories") { CalorieScreen(vm) }

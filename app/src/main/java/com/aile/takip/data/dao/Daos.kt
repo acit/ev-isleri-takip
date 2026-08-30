@@ -233,3 +233,89 @@ interface SyncEventDao {
     @Query("DELETE FROM sync_events WHERE synced = 1")
     suspend fun deleteSynced()
 }
+
+// ========== AİLE NOTLARI DAO ==========
+
+@Dao
+interface NoteDao {
+    @Query("SELECT * FROM notes WHERE isArchived = 0 ORDER BY isPinned DESC, createdAt DESC")
+    fun getAll(): Flow<List<Note>>
+    @Query("SELECT * FROM notes WHERE isArchived = 0 AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%') ORDER BY isPinned DESC, createdAt DESC")
+    fun search(query: String): Flow<List<Note>>
+    @Query("SELECT * FROM notes WHERE isArchived = 1 ORDER BY createdAt DESC")
+    fun getArchived(): Flow<List<Note>>
+    @Query("SELECT * FROM notes WHERE category = :category AND isArchived = 0 ORDER BY isPinned DESC, createdAt DESC")
+    fun getByCategory(category: String): Flow<List<Note>>
+    @Query("SELECT * FROM notes")
+    suspend fun getAllOnce(): List<Note>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(n: Note)
+    @Delete
+    suspend fun delete(n: Note)
+    @Query("DELETE FROM notes")
+    suspend fun deleteAll()
+}
+
+// ========== HATIRLATICILAR DAO ==========
+
+@Dao
+interface ReminderDao {
+    @Query("SELECT * FROM reminders WHERE isCompleted = 0 ORDER BY reminderTime ASC")
+    fun getActive(): Flow<List<Reminder>>
+    @Query("SELECT * FROM reminders ORDER BY createdAt DESC")
+    fun getAll(): Flow<List<Reminder>>
+    @Query("SELECT * FROM reminders WHERE isCompleted = 1 ORDER BY createdAt DESC")
+    fun getCompleted(): Flow<List<Reminder>>
+    @Query("SELECT * FROM reminders WHERE category = :category AND isCompleted = 0 ORDER BY reminderTime ASC")
+    fun getActiveByCategory(category: String): Flow<List<Reminder>>
+    @Query("SELECT * FROM reminders WHERE isCompleted = 0 AND reminderTime <= :now ORDER BY reminderTime ASC")
+    suspend fun getDueReminders(now: Long): List<Reminder>
+    @Query("SELECT * FROM reminders WHERE isCompleted = 0 AND isSnoozed = 1 AND snoozeUntil <= :now")
+    suspend fun getSnoozedReminders(now: Long): List<Reminder>
+    @Query("SELECT * FROM reminders WHERE repeatType != 'once' AND isCompleted = 0 AND (repeatEndDate = 0 OR repeatEndDate > :now)")
+    suspend fun getRepeatReminders(now: Long): List<Reminder>
+    @Query("SELECT * FROM reminders")
+    suspend fun getAllOnce(): List<Reminder>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(r: Reminder)
+    @Delete
+    suspend fun delete(r: Reminder)
+    @Query("DELETE FROM reminders")
+    suspend fun deleteAll()
+}
+
+// ========== SU TÜKETİMİ DAO ==========
+
+@Dao
+interface WaterLogDao {
+    @Query("SELECT * FROM water_logs ORDER BY createdAt DESC")
+    fun getAll(): Flow<List<WaterLog>>
+    @Query("SELECT * FROM water_logs WHERE memberId = :memberId AND date = :date ORDER BY createdAt DESC")
+    fun getByMemberAndDate(memberId: String, date: String): Flow<List<WaterLog>>
+    @Query("SELECT SUM(amountMl) FROM water_logs WHERE memberId = :memberId AND date = :date")
+    fun totalAmount(memberId: String, date: String): Flow<Int?>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(w: WaterLog)
+    @Delete
+    suspend fun delete(w: WaterLog)
+    @Query("SELECT * FROM water_logs")
+    suspend fun getAllOnce(): List<WaterLog>
+}
+
+// ========== UYKU TAKİBİ DAO ==========
+
+@Dao
+interface SleepLogDao {
+    @Query("SELECT * FROM sleep_logs ORDER BY createdAt DESC")
+    fun getAll(): Flow<List<SleepLog>>
+    @Query("SELECT * FROM sleep_logs WHERE memberId = :memberId ORDER BY createdAt DESC")
+    fun getByMember(memberId: String): Flow<List<SleepLog>>
+    @Query("SELECT * FROM sleep_logs WHERE date = :date")
+    fun getByDate(date: String): Flow<List<SleepLog>>
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(s: SleepLog)
+    @Delete
+    suspend fun delete(s: SleepLog)
+    @Query("SELECT * FROM sleep_logs")
+    suspend fun getAllOnce(): List<SleepLog>
+}

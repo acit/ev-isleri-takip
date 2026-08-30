@@ -64,7 +64,7 @@ class FirebaseSyncService(private val db: AppDatabase) {
 
     private fun startListening() {
         stopListening()
-        val tableNames = listOf("members", "tasks", "shopping", "messages", "invoices", "budgets", "inventory", "meal_plans", "sports_clubs", "workout_logs", "calorie_logs", "menstrual_cycles")
+        val tableNames = listOf("members", "tasks", "shopping", "messages", "invoices", "budgets", "inventory", "meal_plans", "sports_clubs", "workout_logs", "calorie_logs", "menstrual_cycles", "notes", "reminders", "water_logs", "sleep_logs")
         for (tableName in tableNames) {
             val ref = familyRef?.child(tableName) ?: continue
             val listener = ref.addValueEventListener(object : ValueEventListener {
@@ -89,6 +89,10 @@ class FirebaseSyncService(private val db: AppDatabase) {
                                     "workout_logs" -> parseWorkout(map)?.let { db.workoutLogDao().upsert(it) }
                                     "calorie_logs" -> parseCalorie(map)?.let { db.calorieLogDao().upsert(it) }
                                     "menstrual_cycles" -> parseMenstrualCycle(map)?.let { db.menstrualCycleDao().upsert(it) }
+                                    "notes" -> parseNote(map)?.let { db.noteDao().upsert(it) }
+                                    "reminders" -> parseReminder(map)?.let { db.reminderDao().upsert(it) }
+                                    "water_logs" -> parseWaterLog(map)?.let { db.waterLogDao().upsert(it) }
+                                    "sleep_logs" -> parseSleepLog(map)?.let { db.sleepLogDao().upsert(it) }
                                 }
                             }
                             _lastSyncTime.value = System.currentTimeMillis()
@@ -143,6 +147,14 @@ class FirebaseSyncService(private val db: AppDatabase) {
         for (c in allCalories) push("calorie_logs", c.id, calorieToMap(c))
         val allCycles = db.menstrualCycleDao().getAllOnce()
         for (c in allCycles) push("menstrual_cycles", c.id, menstrualCycleToMap(c))
+        val allNotes = db.noteDao().getAllOnce()
+        for (n in allNotes) push("notes", n.id, noteToMap(n))
+        val allReminders = db.reminderDao().getAllOnce()
+        for (r in allReminders) push("reminders", r.id, reminderToMap(r))
+        val allWater = db.waterLogDao().getAllOnce()
+        for (w in allWater) push("water_logs", w.id, waterLogToMap(w))
+        val allSleep = db.sleepLogDao().getAllOnce()
+        for (s in allSleep) push("sleep_logs", s.id, sleepLogToMap(s))
         familyRef?.child("last_sync")?.setValue(System.currentTimeMillis())
         _lastSyncTime.value = System.currentTimeMillis()
         _syncState.value = SyncState.Connected
@@ -283,4 +295,134 @@ class FirebaseSyncService(private val db: AppDatabase) {
     private fun workoutToMap(w: WorkoutLog) = mapOf("id" to w.id, "clubId" to w.clubId, "memberId" to w.memberId, "workoutType" to w.workoutType, "duration" to w.duration, "caloriesBurned" to w.caloriesBurned, "date" to w.date, "notes" to w.notes, "createdAt" to w.createdAt, "syncVersion" to w.syncVersion)
     private fun calorieToMap(c: CalorieLog) = mapOf("id" to c.id, "memberId" to c.memberId, "mealType" to c.mealType, "foodName" to c.foodName, "calories" to c.calories, "protein" to c.protein, "carbs" to c.carbs, "fat" to c.fat, "servingSize" to c.servingSize, "date" to c.date, "createdAt" to c.createdAt, "syncVersion" to c.syncVersion)
     private fun menstrualCycleToMap(c: MenstrualCycle) = mapOf("id" to c.id, "memberId" to c.memberId, "startDate" to c.startDate, "endDate" to c.endDate, "cycleLength" to c.cycleLength, "periodLength" to c.periodLength, "symptoms" to c.symptoms, "mood" to c.mood, "flow" to c.flow, "notes" to c.notes, "isPersonal" to c.isPersonal, "createdAt" to c.createdAt, "syncVersion" to c.syncVersion)
+
+    // ========== NOTES ==========
+
+    private fun parseNote(d: Map<String, Any>): Note? {
+        val id = d["id"] as? String ?: return null
+        return Note(
+            id = id,
+            title = d["title"] as? String ?: "",
+            content = d["content"] as? String ?: "",
+            category = d["category"] as? String ?: "Genel",
+            color = d["color"] as? String ?: "#3498DB",
+            isPinned = d["isPinned"] as? Boolean ?: false,
+            isArchived = d["isArchived"] as? Boolean ?: false,
+            createdBy = d["createdBy"] as? String ?: "",
+            createdAt = (d["createdAt"] as? Number)?.toLong() ?: 0L,
+            syncVersion = (d["syncVersion"] as? Number)?.toLong() ?: 0L
+        )
+    }
+
+    private fun noteToMap(n: Note) = mapOf(
+        "id" to n.id,
+        "title" to n.title,
+        "content" to n.content,
+        "category" to n.category,
+        "color" to n.color,
+        "isPinned" to n.isPinned,
+        "isArchived" to n.isArchived,
+        "createdBy" to n.createdBy,
+        "createdAt" to n.createdAt,
+        "syncVersion" to n.syncVersion
+    )
+
+    // ========== REMINDERS ==========
+
+    private fun parseReminder(d: Map<String, Any>): Reminder? {
+        val id = d["id"] as? String ?: return null
+        return Reminder(
+            id = id,
+            title = d["title"] as? String ?: "",
+            description = d["description"] as? String ?: "",
+            reminderTime = (d["reminderTime"] as? Number)?.toLong() ?: 0L,
+            repeatType = d["repeatType"] as? String ?: "once",
+            category = d["category"] as? String ?: "Genel",
+            priority = d["priority"] as? String ?: "orta",
+            isCompleted = d["isCompleted"] as? Boolean ?: false,
+            isSnoozed = d["isSnoozed"] as? Boolean ?: false,
+            snoozeUntil = (d["snoozeUntil"] as? Number)?.toLong() ?: 0L,
+            linkedId = d["linkedId"] as? String ?: "",
+            linkedType = d["linkedType"] as? String ?: "",
+            createdBy = d["createdBy"] as? String ?: "",
+            createdAt = (d["createdAt"] as? Number)?.toLong() ?: 0L,
+            syncVersion = (d["syncVersion"] as? Number)?.toLong() ?: 0L
+        )
+    }
+
+    private fun reminderToMap(r: Reminder) = mapOf(
+        "id" to r.id,
+        "title" to r.title,
+        "description" to r.description,
+        "reminderTime" to r.reminderTime,
+        "repeatType" to r.repeatType,
+        "category" to r.category,
+        "priority" to r.priority,
+        "isCompleted" to r.isCompleted,
+        "isSnoozed" to r.isSnoozed,
+        "snoozeUntil" to r.snoozeUntil,
+        "linkedId" to r.linkedId,
+        "linkedType" to r.linkedType,
+        "createdBy" to r.createdBy,
+        "createdAt" to r.createdAt,
+        "syncVersion" to r.syncVersion
+    )
+
+    // ========== WATER LOGS ==========
+
+    private fun parseWaterLog(d: Map<String, Any>): WaterLog? {
+        val id = d["id"] as? String ?: return null
+        return WaterLog(
+            id = id,
+            memberId = d["memberId"] as? String ?: "",
+            amountMl = (d["amountMl"] as? Number)?.toInt() ?: 250,
+            drinkType = d["drinkType"] as? String ?: "Su",
+            date = d["date"] as? String ?: "",
+            createdAt = (d["createdAt"] as? Number)?.toLong() ?: 0L,
+            syncVersion = (d["syncVersion"] as? Number)?.toLong() ?: 0L
+        )
+    }
+
+    private fun waterLogToMap(w: WaterLog) = mapOf(
+        "id" to w.id,
+        "memberId" to w.memberId,
+        "amountMl" to w.amountMl,
+        "drinkType" to w.drinkType,
+        "date" to w.date,
+        "createdAt" to w.createdAt,
+        "syncVersion" to w.syncVersion
+    )
+
+    // ========== SLEEP LOGS ==========
+
+    private fun parseSleepLog(d: Map<String, Any>): SleepLog? {
+        val id = d["id"] as? String ?: return null
+        return SleepLog(
+            id = id,
+            memberId = d["memberId"] as? String ?: "",
+            bedtime = (d["bedtime"] as? Number)?.toLong() ?: 0L,
+            wakeTime = (d["wakeTime"] as? Number)?.toLong() ?: 0L,
+            durationMinutes = (d["durationMinutes"] as? Number)?.toInt() ?: 0,
+            quality = d["quality"] as? String ?: "orta",
+            interruptions = (d["interruptions"] as? Number)?.toInt() ?: 0,
+            notes = d["notes"] as? String ?: "",
+            date = d["date"] as? String ?: "",
+            createdAt = (d["createdAt"] as? Number)?.toLong() ?: 0L,
+            syncVersion = (d["syncVersion"] as? Number)?.toLong() ?: 0L
+        )
+    }
+
+    private fun sleepLogToMap(s: SleepLog) = mapOf(
+        "id" to s.id,
+        "memberId" to s.memberId,
+        "bedtime" to s.bedtime,
+        "wakeTime" to s.wakeTime,
+        "durationMinutes" to s.durationMinutes,
+        "quality" to s.quality,
+        "interruptions" to s.interruptions,
+        "notes" to s.notes,
+        "date" to s.date,
+        "createdAt" to s.createdAt,
+        "syncVersion" to s.syncVersion
+    )
 }

@@ -2,6 +2,16 @@ package com.aile.takip.data.model
 
 import androidx.room.*
 
+// ========== EK (ATTACHMENT) ==========
+data class Attachment(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val fileName: String = "",
+    val mimeType: String = "image/jpeg",  // image/*, application/pdf, vb.
+    val base64Data: String = "",  // Fotoğraf için Base64 encoded data
+    val fileSize: Long = 0L,
+    val createdAt: Long = System.currentTimeMillis()
+)
+
 @Entity(tableName = "tasks")
 data class Task(
     @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
@@ -77,6 +87,7 @@ data class Message(
     val content: String,
     val channel: String = "genel",
     val read: Boolean = false,
+    val attachments: String = "",  // JSON array of Attachment objects
     val createdAt: Long = System.currentTimeMillis(),
     val syncVersion: Long = System.currentTimeMillis()
 )
@@ -202,4 +213,80 @@ data class SyncEvent(
     val deviceId: String = "",
     val createdAt: Long = System.currentTimeMillis(),
     val synced: Boolean = false
+)
+
+// ========== AİLE NOTLARI ==========
+
+@Entity(tableName = "notes")
+data class Note(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val title: String,
+    val content: String = "",
+    val category: String = "Genel",  // Genel, Alışveriş, Tarif, Fikir, Önemli
+    val color: String = "#3498DB",  // Renk kodu
+    val isPinned: Boolean = false,
+    val isArchived: Boolean = false,
+    val attachments: String = "",  // JSON array of Attachment objects
+    val createdBy: String = "",  // Hangi aile üyesi
+    val createdAt: Long = System.currentTimeMillis(),
+    val syncVersion: Long = System.currentTimeMillis()
+)
+
+// ========== HATIRLATICILAR ==========
+
+@Entity(tableName = "reminders")
+data class Reminder(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val title: String,
+    val description: String = "",
+    val reminderTime: Long,  // Hatırlatma zamanı (timestamp)
+    val repeatType: String = "once",  // once, daily, weekly, monthly, custom
+    val repeatDays: String = "",  // Custom için: "1,3,5" (Pazartesi, Çarşamba, Cuma)
+    val repeatInterval: Int = 1,  // interval (her 2 günde bir vb.)
+    val repeatEndDate: Long = 0L,  // Bitiş tarihi (0 = süresiz)
+    val category: String = "Genel",  // Genel, Görev, Fatura, Etkinlik, Sağlık
+    val priority: String = "orta",  // düşük, orta, yüksek
+    val alarmSound: String = "default",  // default, alarm, bell, chime, urgent
+    val vibrate: Boolean = true,  // Titreşim
+    val snoozeMinutes: Int = 15,  // Erteleme süresi (dakika)
+    val isCompleted: Boolean = false,
+    val isSnoozed: Boolean = false,
+    val snoozeUntil: Long = 0L,  // Erteleme bitiş zamanı
+    val lastFiredAt: Long = 0L,  // Son ateşlenme zamanı
+    val nextFireAt: Long = 0L,  // Sonraki ateşlenme zamanı
+    val linkedId: String = "",  // İlişkili görev/fatura ID'si
+    val linkedType: String = "",  // task, invoice, note vb.
+    val createdBy: String = "",  // Hangi aile üyesi
+    val createdAt: Long = System.currentTimeMillis(),
+    val syncVersion: Long = System.currentTimeMillis()
+)
+
+// ========== SU TÜKETİMİ ==========
+
+@Entity(tableName = "water_logs")
+data class WaterLog(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val memberId: String = "",
+    val amountMl: Int = 250,  // mililitre cinsinden
+    val drinkType: String = "Su",  // Su, Çay, Kahve, Meyve Suyu vb.
+    val date: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val syncVersion: Long = System.currentTimeMillis()
+)
+
+// ========== UYKU TAKİBİ ==========
+
+@Entity(tableName = "sleep_logs")
+data class SleepLog(
+    @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
+    val memberId: String = "",
+    val bedtime: Long = 0L,  // Yatma zamanı (timestamp)
+    val wakeTime: Long = 0L,  // Kalkma zamanı (timestamp)
+    val durationMinutes: Int = 0,  // Toplam uyku süresi (dakika)
+    val quality: String = "orta",  // kötü, orta, iyi, çok iyi
+    val interruptions: Int = 0,  // Uyanma sayısı
+    val notes: String = "",
+    val date: String = "",
+    val createdAt: Long = System.currentTimeMillis(),
+    val syncVersion: Long = System.currentTimeMillis()
 )
