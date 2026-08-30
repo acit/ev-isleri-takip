@@ -19,11 +19,20 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
-    // Tek build type — debug & release ayırt etmeden tek APK
+    signingConfigs {
+        create("release") {
+            storeFile = file("../aile-takip-release.jks")
+            storePassword = "aile1234"
+            keyAlias = "aile-takip"
+            keyPassword = "aile1234"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -78,6 +87,14 @@ dependencies {
     // Image Loading (Coil 3 for Compose)
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+
+    // CameraX + ML Kit Barcode Scanning
+    val cameraxVersion = "1.4.1"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
     // Test Dependencies
     testImplementation("junit:junit:4.13.2")

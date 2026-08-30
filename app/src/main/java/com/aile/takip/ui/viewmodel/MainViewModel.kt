@@ -44,6 +44,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var isAuthenticated = mutableStateOf(false)
     var selectedMemberId = mutableStateOf<String?>(null)
 
+    // Barcode/QR scan result
+    val lastScanResult = mutableStateOf<String?>(null)
+
     // Existing data
     val tasks = repo.tasks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
     val inventory = repo.inventory.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -84,8 +87,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val totalMembers by derivedStateOf { members.value.size }
 
     init {
-        // Check if PIN exists
+        // Seed sample data on first run, then check PIN
         viewModelScope.launch {
+            com.aile.takip.data.seeder.SampleDataSeeder.seedIfNeeded(db)
             val a = repo.getAuthOnce()
             if (a == null || a.pin.isEmpty()) {
                 isAuthenticated.value = true // No PIN set = auto-login

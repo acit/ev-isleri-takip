@@ -80,7 +80,7 @@ fun MainScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit) {
                 composable("budget") { BudgetScreen(vm) }
                 composable("invoices") { InvoiceScreen(vm) }
                 composable("messages") { MessagesScreen(vm) }
-                composable("shopping") { ShoppingScreen(vm) }
+                composable("shopping") { ShoppingScreen(vm, navController) }
                 composable("calendar") { CalendarScreen() }
                 composable("profile") { ProfileScreen(darkMode, onToggleDark, vm) }
                 composable("meal-plan") { MealPlanScreen(vm) }
@@ -93,7 +93,26 @@ fun MainScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit) {
                 composable("sports") { SportsClubScreen(vm) }
                 composable("calories") { CalorieScreen(vm) }
                 composable("menstrual") { MenstrualCycleScreen(vm) }
-                composable("sync-settings") { SyncSettingsScreen(vm) }
+                composable("sync-settings") { SyncSettingsScreen(vm, navController) }
+                // QR/Barkod Tarayıcı
+                composable("scanner/{mode}") { backStackEntry ->
+                    val mode = backStackEntry.arguments?.getString("mode") ?: "any"
+                    val scanMode = when (mode) {
+                        "barcode" -> ScanMode.BARCODE
+                        "qr" -> ScanMode.QR_CODE
+                        else -> ScanMode.ANY
+                    }
+                    BarcodeScannerScreen(
+                        scanMode = scanMode,
+                        onResult = { result ->
+                            // Store result and pop back
+                            vm.lastScanResult.value = result.rawValue
+                            navController.previousBackStackEntry?.savedStateHandle?.set("scan_result", result.rawValue)
+                            navController.popBackStack()
+                        },
+                        onBack = { navController.popBackStack() }
+                    )
+                }
             }
         }
     }

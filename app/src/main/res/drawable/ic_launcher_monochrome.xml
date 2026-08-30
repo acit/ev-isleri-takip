@@ -1,0 +1,85 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- ═══════════════════════════════════════════════
+         Monochrome Icon — Android 13+ Themed Icons
+         ═══════════════════════════════════════════════ -->
+
+    <!-- ── House body ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M32,50 L54,34 L76,50 L76,76 L32,76 Z" />
+
+    <!-- ── Roof ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M28,52 L54,32 L80,52 L76,50 L54,34 L32,50 Z" />
+
+    <!-- ── Door ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,60 L46,76 L62,76 L62,60 Q54,55 46,60 Z"
+        android:fillAlpha="0.85" />
+
+    <!-- ── Door handle ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M57,68 m-1.8,0 a1.8,1.8 0 1,1 3.6,0 a1.8,1.8 0 1,1 -3.6,0" />
+
+    <!-- ── Left window ── -->
+    <path
+        android:pathData="M34,54 L44,54 L44,64 L34,64 Z M39,54 L39,64 M34,59 L44,59"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5" />
+
+    <!-- ── Right window ── -->
+    <path
+        android:pathData="M64,54 L74,54 L74,64 L64,64 Z M69,54 L69,64 M64,59 L74,59"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="1.5" />
+
+    <!-- ── Chimney ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M68,36 L68,44 L74,44 L74,36 Z"
+        android:fillAlpha="0.9" />
+
+    <!-- ── Heart above roof ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,22 C54,22 47,15 42,15 C37,15 33,19 33,23 C33,31 54,37 54,37 C54,37 75,31 75,23 C75,19 71,15 66,15 C61,15 54,22 54,22 Z" />
+
+    <!-- ── Family figures ── -->
+    <!-- Father -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,76 L36,71 Q36,68 40,68 Q44,68 44,71 L44,76 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M40,65 m-3,0 a3,3 0 1,1 6,0 a3,3 0 1,1 -6,0" />
+
+    <!-- Mother -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,76 L50,70 Q50,67 54,67 Q58,67 58,70 L58,76 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,64 m-2.8,0 a2.8,2.8 0 1,1 5.6,0 a2.8,2.8 0 1,1 -5.6,0" />
+
+    <!-- Child -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M63,76 L63,72 Q63,70 66,70 Q69,70 69,72 L69,76 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M66,68 m-2.2,0 a2.2,2.2 0 1,1 4.4,0 a2.2,2.2 0 1,1 -4.4,0" />
+
+    <!-- ── Ground ── -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M14,76 L94,76 L94,78 Q54,80 14,78 Z"
+        android:fillAlpha="0.8" />
+</vector>

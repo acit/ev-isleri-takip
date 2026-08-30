@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.aile.takip.sync.FirebaseSyncService
 import com.aile.takip.ui.components.PageScaffold
 import com.aile.takip.ui.viewmodel.MainViewModel
@@ -19,13 +20,22 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun SyncSettingsScreen(vm: MainViewModel) {
+fun SyncSettingsScreen(vm: MainViewModel, navController: NavController? = null) {
     val syncState by vm.syncState.collectAsState()
     val lastSync by vm.lastSyncTime.collectAsState()
     val syncedTables by vm.syncedTables.collectAsState()
     val syncEnabled by vm.syncEnabled
     val groupId by vm.familyGroupId
     var inputGroupId by remember { mutableStateOf(groupId.ifEmpty { "aile_" + (1000..9999).random() }) }
+
+    // Handle QR scan result for group code
+    val scanResult by vm.lastScanResult
+    LaunchedEffect(scanResult) {
+        if (scanResult != null) {
+            inputGroupId = scanResult ?: ""
+            vm.lastScanResult.value = null
+        }
+    }
 
     PageScaffold("\uD83D\uDD04 Senkronizasyon", "\uD83D\uDD04") {
         // Connection status
@@ -97,18 +107,34 @@ fun SyncSettingsScreen(vm: MainViewModel) {
                 Spacer(Modifier.height(4.dp))
                 Text("Aynı grup ID'sini kullanan tüm aile üyeleri otomatik senkronize olur.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = inputGroupId,
-                    onValueChange = { inputGroupId = it },
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Grup ID") },
-                    placeholder = { Text("örn: aile_1234") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(10.dp),
-                    readOnly = syncEnabled
-                )
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedTextField(
+                        value = inputGroupId,
+                        onValueChange = { inputGroupId = it },
+                        modifier = Modifier.weight(1f),
+                        label = { Text("Grup ID") },
+                        placeholder = { Text("örn: aile_1234") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                        readOnly = syncEnabled
+                    )
+                    if (navController != null && !syncEnabled) {
+                        FilledIconButton(
+                            onClick = { navController.navigate("scanner/qr") },
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.tertiary
+                            )
+                        ) {
+                            Icon(Icons.Default.QrCodeScanner, "QR Tara")
+                        }
+                    }
+                }
                 Spacer(Modifier.height(8.dp))
-                Text("\u2139\uFE0F Tüm aile üyeleriniz bu ID'yi aynı anda girmeli", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("\u2139\uFE0F Tüm aile üyeleriniz bu ID'yi aynı anda girmeli. QR kodu ile hızlıca tarayabilirsiniz.", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
 

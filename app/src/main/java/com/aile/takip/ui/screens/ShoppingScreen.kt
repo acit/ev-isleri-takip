@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,14 +15,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.aile.takip.ui.components.PageScaffold
 import com.aile.takip.ui.viewmodel.MainViewModel
 
 @Composable
-fun ShoppingScreen(vm: MainViewModel) {
+fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
     val items by vm.shoppingItems.collectAsState()
     var newItem by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Market") }
+
+    // Handle scan result from barcode scanner
+    val scanResult by vm.lastScanResult
+    LaunchedEffect(scanResult) {
+        if (scanResult != null) {
+            newItem = scanResult ?: ""
+            vm.lastScanResult.value = null
+        }
+    }
 
     val unchecked = items.filter { !it.checked }
     val checked = items.filter { it.checked }
@@ -30,6 +41,15 @@ fun ShoppingScreen(vm: MainViewModel) {
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(value = newItem, onValueChange = { newItem = it }, modifier = Modifier.weight(1f),
                 placeholder = { Text("Ürün ekle...") }, singleLine = true, shape = RoundedCornerShape(10.dp))
+            // QR/Barkod tarama butonu
+            if (navController != null) {
+                FilledIconButton(
+                    onClick = { navController.navigate("scanner/barcode") },
+                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                ) {
+                    Icon(Icons.Default.QrCodeScanner, "Tara")
+                }
+            }
             FilledIconButton(onClick = {
                 if (newItem.isNotBlank()) { vm.addShoppingItem(newItem, category = category); newItem = "" }
             }, colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)) {
