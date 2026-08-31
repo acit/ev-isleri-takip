@@ -20,10 +20,17 @@ struct AileTakipApp: App {
             Invoice.self,
             Budget.self,
             Expense.self,
+            InventoryItem.self,
+            MealPlan.self,
+            SportsClub.self,
             WorkoutLog.self,
             CalorieLog.self,
+            MenstrualCycle.self,
             WaterLog.self,
-            SleepLog.self
+            SleepLog.self,
+            UserAuth.self,
+            SyncEvent.self,
+            Attachment.self
         ])
     }
 }

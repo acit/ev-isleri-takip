@@ -21,10 +21,16 @@ class MainViewModel: ObservableObject {
     @Published var invoices: [Invoice] = []
     @Published var budgets: [Budget] = []
     @Published var expenses: [Expense] = []
+    @Published var inventoryItems: [InventoryItem] = []
+    @Published var mealPlans: [MealPlan] = []
+    @Published var sportsClubs: [SportsClub] = []
     @Published var workoutLogs: [WorkoutLog] = []
     @Published var calorieLogs: [CalorieLog] = []
+    @Published var menstrualCycles: [MenstrualCycle] = []
     @Published var waterLogs: [WaterLog] = []
     @Published var sleepLogs: [SleepLog] = []
+    @Published var userAuth: UserAuth?
+    @Published var syncEvents: [SyncEvent] = []
     
     // MARK: - Computed
     var pendingTaskCount: Int {
@@ -45,6 +51,14 @@ class MainViewModel: ObservableObject {
         return waterLogs.filter { $0.date == today }.reduce(0) { $0 + $1.amountMl }
     }
     
+    var activeSportsClubCount: Int {
+        sportsClubs.filter { $0.isActive }.count
+    }
+    
+    var unpaidInvoiceCount: Int {
+        invoices.filter { $0.status == "pending" }.count
+    }
+    
     // MARK: - Init
     init() {
         do {
@@ -52,7 +66,10 @@ class MainViewModel: ObservableObject {
             let container = try ModelContainer(
                 for: FamilyMember.self, Task.self, ShoppingItem.self, Message.self,
                      Note.self, Reminder.self, Invoice.self, Budget.self, Expense.self,
-                     WorkoutLog.self, CalorieLog.self, WaterLog.self, SleepLog.self,
+                     InventoryItem.self, MealPlan.self, SportsClub.self,
+                     WorkoutLog.self, CalorieLog.self, MenstrualCycle.self,
+                     WaterLog.self, SleepLog.self, UserAuth.self, SyncEvent.self,
+                     Attachment.self,
                 configurations: config
             )
             self.modelContainer = container
@@ -74,12 +91,19 @@ class MainViewModel: ObservableObject {
         fetchInvoices()
         fetchBudgets()
         fetchExpenses()
+        fetchInventory()
+        fetchMealPlans()
+        fetchSportsClubs()
         fetchWorkouts()
         fetchCalories()
+        fetchMenstrualCycles()
         fetchWater()
         fetchSleep()
+        fetchUserAuth()
+        fetchSyncEvents()
     }
     
+    // MARK: - Fetch Methods
     private func fetchMembers() {
         let descriptor = FetchDescriptor<FamilyMember>(sortBy: [SortDescriptor(\.createdAt)])
         members = (try? modelContext.fetch(descriptor)) ?? []
@@ -125,6 +149,21 @@ class MainViewModel: ObservableObject {
         expenses = (try? modelContext.fetch(descriptor)) ?? []
     }
     
+    private func fetchInventory() {
+        let descriptor = FetchDescriptor<InventoryItem>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        inventoryItems = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    private func fetchMealPlans() {
+        let descriptor = FetchDescriptor<MealPlan>(sortBy: [SortDescriptor(\.dayOfWeek)])
+        mealPlans = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    private func fetchSportsClubs() {
+        let descriptor = FetchDescriptor<SportsClub>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        sportsClubs = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
     private func fetchWorkouts() {
         let descriptor = FetchDescriptor<WorkoutLog>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         workoutLogs = (try? modelContext.fetch(descriptor)) ?? []
@@ -135,6 +174,11 @@ class MainViewModel: ObservableObject {
         calorieLogs = (try? modelContext.fetch(descriptor)) ?? []
     }
     
+    private func fetchMenstrualCycles() {
+        let descriptor = FetchDescriptor<MenstrualCycle>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        menstrualCycles = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
     private func fetchWater() {
         let descriptor = FetchDescriptor<WaterLog>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         waterLogs = (try? modelContext.fetch(descriptor)) ?? []
@@ -143,6 +187,16 @@ class MainViewModel: ObservableObject {
     private func fetchSleep() {
         let descriptor = FetchDescriptor<SleepLog>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
         sleepLogs = (try? modelContext.fetch(descriptor)) ?? []
+    }
+    
+    private func fetchUserAuth() {
+        let descriptor = FetchDescriptor<UserAuth>()
+        userAuth = (try? modelContext.fetch(descriptor))?.first
+    }
+    
+    private func fetchSyncEvents() {
+        let descriptor = FetchDescriptor<SyncEvent>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        syncEvents = (try? modelContext.fetch(descriptor)) ?? []
     }
     
     // MARK: - Task Operations
@@ -187,8 +241,8 @@ class MainViewModel: ObservableObject {
     }
     
     // MARK: - Message Operations
-    func sendMessage(content: String, senderName: String = "Ben") {
-        let message = Message(senderName: senderName, senderId: "self", content: content)
+    func sendMessage(content: String, senderName: String = "Ben", attachments: String = "") {
+        let message = Message(senderName: senderName, senderId: "self", content: content, attachments: attachments)
         modelContext.insert(message)
         save()
         fetchMessages()
@@ -201,8 +255,8 @@ class MainViewModel: ObservableObject {
     }
     
     // MARK: - Note Operations
-    func addNote(title: String, content: String = "", category: String = "Genel", color: String = "#3498DB") {
-        let note = Note(title: title, content: content, category: category, color: color)
+    func addNote(title: String, content: String = "", category: String = "Genel", color: String = "#3498DB", attachments: String = "") {
+        let note = Note(title: title, content: content, category: category, color: color, attachments: attachments)
         modelContext.insert(note)
         save()
         fetchNotes()
@@ -221,8 +275,8 @@ class MainViewModel: ObservableObject {
     }
     
     // MARK: - Reminder Operations
-    func addReminder(title: String, description: String = "", reminderTime: Date, category: String = "Genel", priority: String = "orta") {
-        let reminder = Reminder(title: title, description: description, reminderTime: reminderTime, category: category, priority: priority)
+    func addReminder(title: String, description: String = "", reminderTime: Date, repeatType: String = "once", category: String = "Genel", priority: String = "orta", alarmSound: String = "default") {
+        let reminder = Reminder(title: title, description: description, reminderTime: reminderTime, repeatType: repeatType, category: category, priority: priority, alarmSound: alarmSound)
         modelContext.insert(reminder)
         save()
         fetchReminders()
@@ -241,8 +295,8 @@ class MainViewModel: ObservableObject {
     }
     
     // MARK: - Invoice Operations
-    func addInvoice(title: String, amount: Double, category: String = "Genel", dueDate: String = "", notes: String = "") {
-        let invoice = Invoice(title: title, amount: amount, category: category, dueDate: dueDate, notes: notes)
+    func addInvoice(title: String, amount: Double, category: String = "Genel", dueDate: String = "", notes: String = "", imageBase64: String? = nil) {
+        let invoice = Invoice(title: title, amount: amount, category: category, dueDate: dueDate, notes: notes, imageBase64: imageBase64)
         modelContext.insert(invoice)
         save()
         fetchInvoices()
@@ -297,26 +351,82 @@ class MainViewModel: ObservableObject {
         fetchBudgets()
     }
     
-    func addExpense(category: String, amount: Double, description: String = "", date: String) {
-        let expense = Expense(category: category, amount: amount, description: description, expenseDate: date)
+    func addExpense(category: String, amount: Double, description: String = "", date: String, budgetId: String = "") {
+        let expense = Expense(budgetId: budgetId, category: category, amount: amount, description: description, expenseDate: date)
         modelContext.insert(expense)
         save()
         fetchExpenses()
     }
     
     // MARK: - Workout & Calorie
-    func addWorkout(workoutType: String, duration: Int, calories: Int, notes: String = "") {
-        let workout = WorkoutLog(memberId: "self", workoutType: workoutType, duration: duration, caloriesBurned: calories, date: formatDate(Date()), notes: notes)
+    func addWorkout(clubId: String = "", workoutType: String, duration: Int, calories: Int, notes: String = "") {
+        let workout = WorkoutLog(clubId: clubId, memberId: "self", workoutType: workoutType, duration: duration, caloriesBurned: calories, date: formatDate(Date()), notes: notes)
         modelContext.insert(workout)
         save()
         fetchWorkouts()
     }
     
-    func addCalorie(mealType: String, foodName: String, calories: Int, protein: Double = 0, carbs: Double = 0, fat: Double = 0) {
-        let calorie = CalorieLog(memberId: "self", mealType: mealType, foodName: foodName, calories: calories, protein: protein, carbs: carbs, fat: fat, date: formatDate(Date()))
+    func addCalorie(mealType: String, foodName: String, calories: Int, protein: Double = 0, carbs: Double = 0, fat: Double = 0, servingSize: String = "") {
+        let calorie = CalorieLog(memberId: "self", mealType: mealType, foodName: foodName, calories: calories, protein: protein, carbs: carbs, fat: fat, servingSize: servingSize, date: formatDate(Date()))
         modelContext.insert(calorie)
         save()
         fetchCalories()
+    }
+    
+    // MARK: - Inventory Operations
+    func addInventoryItem(name: String, category: String = "Genel", quantity: Int = 1, unit: String = "adet", location: String = "") {
+        let item = InventoryItem(name: name, category: category, quantity: quantity, unit: unit, location: location)
+        modelContext.insert(item)
+        save()
+        fetchInventory()
+    }
+    
+    func deleteInventoryItem(_ item: InventoryItem) {
+        modelContext.delete(item)
+        save()
+        fetchInventory()
+    }
+    
+    // MARK: - Meal Plan Operations
+    func addMealPlan(dayOfWeek: Int, mealType: String, dish: String, notes: String = "") {
+        let plan = MealPlan(dayOfWeek: dayOfWeek, mealType: mealType, dish: dish, notes: notes)
+        modelContext.insert(plan)
+        save()
+        fetchMealPlans()
+    }
+    
+    func deleteMealPlan(_ plan: MealPlan) {
+        modelContext.delete(plan)
+        save()
+        fetchMealPlans()
+    }
+    
+    // MARK: - Sports Club Operations
+    func addSportsClub(name: String, type: String = "Spor Salonu", monthlyFee: Double = 0, memberId: String = "") {
+        let club = SportsClub(name: name, type: type, monthlyFee: monthlyFee, memberId: memberId)
+        modelContext.insert(club)
+        save()
+        fetchSportsClubs()
+    }
+    
+    func deleteSportsClub(_ club: SportsClub) {
+        modelContext.delete(club)
+        save()
+        fetchSportsClubs()
+    }
+    
+    // MARK: - Menstrual Cycle Operations
+    func addMenstrualCycle(startDate: String, cycleLength: Int = 28, periodLength: Int = 5, symptoms: String = "", mood: String = "") {
+        let cycle = MenstrualCycle(memberId: "self", startDate: startDate, cycleLength: cycleLength, periodLength: periodLength, symptoms: symptoms, mood: mood)
+        modelContext.insert(cycle)
+        save()
+        fetchMenstrualCycles()
+    }
+    
+    func deleteMenstrualCycle(_ cycle: MenstrualCycle) {
+        modelContext.delete(cycle)
+        save()
+        fetchMenstrualCycles()
     }
     
     // MARK: - Helpers
@@ -390,6 +500,78 @@ class MainViewModel: ObservableObject {
             Invoice(title: "Su Faturası", amount: 95.0, category: "Faturalar", status: "pending", createdBy: "Mehmet"),
         ]
         invoicesList.forEach { modelContext.insert($0) }
+        
+        // Sports Clubs
+        let clubs = [
+            SportsClub(name: "World Fitness Gym", type: "Spor Salonu", monthlyFee: 450, memberId: "m1"),
+            SportsClub(name: "Olimpik Yüzme Havuzu", type: "Yüzme", monthlyFee: 300, memberId: "m2"),
+            SportsClub(name: "Çocuklar Futbol Kulübü", type: "Futbol", monthlyFee: 200, memberId: "m4"),
+        ]
+        clubs.forEach { modelContext.insert($0) }
+        
+        // Workout Logs
+        let workouts = [
+            WorkoutLog(clubId: clubs[0].id, memberId: "m1", workoutType: "Kardiyo", duration: 45, caloriesBurned: 350, date: formatDate(Date())),
+            WorkoutLog(clubId: clubs[0].id, memberId: "m1", workoutType: "Ağırlık", duration: 60, caloriesBurned: 400, date: formatDate(Date(timeIntervalSinceNow: -86400))),
+            WorkoutLog(clubId: clubs[1].id, memberId: "m2", workoutType: "Yüzme", duration: 30, caloriesBurned: 250, date: formatDate(Date())),
+        ]
+        workouts.forEach { modelContext.insert($0) }
+        
+        // Calorie Logs
+        let calories = [
+            CalorieLog(memberId: "m1", mealType: "Kahvaltı", foodName: "Yumurta + Peynir", calories: 350, protein: 25, carbs: 10, fat: 22, servingSize: "1 porsiyon", date: formatDate(Date())),
+            CalorieLog(memberId: "m1", mealType: "Öğle", foodName: "Tavuk Salata", calories: 420, protein: 35, carbs: 15, fat: 25, servingSize: "1 porsiyon", date: formatDate(Date())),
+            CalorieLog(memberId: "m2", mealType: "Kahvaltı", foodName: "Müsli + Süt", calories: 280, protein: 12, carbs: 45, fat: 8, servingSize: "1 kase", date: formatDate(Date())),
+        ]
+        calories.forEach { modelContext.insert($0) }
+        
+        // Water Logs
+        let waters = [
+            WaterLog(memberId: "m1", amountMl: 250, drinkType: "Su", date: formatDate(Date())),
+            WaterLog(memberId: "m1", amountMl: 200, drinkType: "Çay", date: formatDate(Date())),
+            WaterLog(memberId: "m2", amountMl: 250, drinkType: "Su", date: formatDate(Date())),
+            WaterLog(memberId: "m2", amountMl: 300, drinkType: "Meyve Suyu", date: formatDate(Date())),
+        ]
+        waters.forEach { modelContext.insert($0) }
+        
+        // Budgets
+        let budgetList = [
+            Budget(category: "Market", monthlyLimit: 5000, spentAmount: 2800, monthYear: formatDate(Date())),
+            Budget(category: "Faturalar", monthlyLimit: 1000, spentAmount: 495, monthYear: formatDate(Date())),
+            Budget(category: "Eğlence", monthlyLimit: 2000, spentAmount: 750, monthYear: formatDate(Date())),
+        ]
+        budgetList.forEach { modelContext.insert($0) }
+        
+        // Reminders
+        let reminderList = [
+            Reminder(title: "İlaç Zamanı", description: "Tansiyon ilacı", reminderTime: Date().addingTimeInterval(3600), repeatType: "daily", category: "Sağlık", priority: "yüksek", alarmSound: "alarm"),
+            Reminder(title: "Okul Servisi", description: "Zeynep ve Emir'i hazırla", reminderTime: Date().addingTimeInterval(28800), repeatType: "daily", category: "Etkinlik", priority: "yüksek", alarmSound: "bell"),
+            Reminder(title: "Fatura Ödeme", description: "Elektrik faturası son gün", reminderTime: Date().addingTimeInterval(86400 * 3), repeatType: "once", category: "Fatura", priority: "orta"),
+        ]
+        reminderList.forEach { modelContext.insert($0) }
+        
+        // Inventory Items
+        let inventoryList = [
+            InventoryItem(name: "Bulaşık Deterjanı", category: "Temizlik", quantity: 2, unit: "adet", location: "Mutfak"),
+            InventoryItem(name: "Tuvalet Kağıdı", category: "Temizlik", quantity: 12, unit: "rulo", location: "Banyo"),
+            InventoryItem(name: "Pil (AA)", category: "Ev Gereçleri", quantity: 8, unit: "adet", location: "Çekmece"),
+            InventoryItem(name: "İlk Yardım Çantası", category: "Sağlık", quantity: 1, unit: "adet", location: "Koridor"),
+        ]
+        inventoryList.forEach { modelContext.insert($0) }
+        
+        // Meal Plans
+        let mealPlanList = [
+            MealPlan(dayOfWeek: 1, mealType: "Kahvaltı", dish: "Menemen", notes: "Domates ağırlıklı"),
+            MealPlan(dayOfWeek: 1, mealType: "Öğle", dish: "Mercimek Çorbası + Salata"),
+            MealPlan(dayOfWeek: 1, mealType: "Akşam", dish: "Tavuk Izgara + Pirinç Pilavı"),
+            MealPlan(dayOfWeek: 2, mealType: "Kahvaltı", dish: "Yumurta + Peynir + Zeytin"),
+            MealPlan(dayOfWeek: 2, mealType: "Öğle", dish: "İskender Kebap"),
+            MealPlan(dayOfWeek: 2, mealType: "Akşam", dish: "Balık + Çoban Salata"),
+            MealPlan(dayOfWeek: 3, mealType: "Kahvaltı", dish: "Müsli + Meyve"),
+            MealPlan(dayOfWeek: 3, mealType: "Öğle", dish: "Tavuk Sote + Makarna"),
+            MealPlan(dayOfWeek: 3, mealType: "Akşam", dish: "Kuru Fasulye + Pilav"),
+        ]
+        mealPlanList.forEach { modelContext.insert($0) }
         
         save()
         loadData()

@@ -4,10 +4,6 @@ struct ContentView: View {
     @EnvironmentObject var vm: MainViewModel
     @State private var selectedTab = 0
     
-    init() {
-        // Load sample data on first launch
-    }
-    
     var body: some View {
         TabView(selection: $selectedTab) {
             DashboardView()
@@ -16,7 +12,7 @@ struct ContentView: View {
                 }
                 .tag(0)
             
-            TasksView()
+            TodosView()
                 .tabItem {
                     Label("Görevler", systemImage: "checkmark.circle")
                 }
@@ -28,111 +24,26 @@ struct ContentView: View {
                 }
                 .tag(2)
             
+            BudgetView()
+                .tabItem {
+                    Label("Bütçe", systemImage: "dollarsign.circle")
+                }
+                .tag(3)
+            
             MessagesView()
                 .tabItem {
                     Label("Mesajlar", systemImage: "message")
                 }
-                .tag(3)
+                .tag(4)
             
             ProfileView()
                 .tabItem {
                     Label("Profil", systemImage: "person.circle")
                 }
-                .tag(4)
+                .tag(5)
         }
         .onAppear {
             vm.loadSampleData()
-        }
-    }
-}
-
-// MARK: - Shopping View
-struct ShoppingView: View {
-    @EnvironmentObject var vm: MainViewModel
-    @State private var showAddItem = false
-    @State private var newItemName = ""
-    @State private var newItemCategory = "Market"
-    @State private var newItemQuantity = 1
-    
-    let categories = ["Market", "Temizlik", "Kişisel Bakım", "Ev Gereçleri", "Çocuk"]
-    
-    var body: some View {
-        NavigationStack {
-            List {
-                ForEach(vm.shoppingItems) { item in
-                    HStack {
-                        Button {
-                            vm.toggleShoppingItem(item)
-                        } label: {
-                            Image(systemName: item.checked ? "checkmark.square.fill" : "square")
-                                .foregroundStyle(item.checked ? .green : .secondary)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        VStack(alignment: .leading) {
-                            Text(item.name)
-                                .strikethrough(item.checked)
-                            HStack {
-                                Text(item.category)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                if !item.addedBy.isEmpty {
-                                    Text("• \(item.addedBy)")
-                                        .font(.caption)
-                                        .foregroundStyle(.blue)
-                                }
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        if item.quantity > 1 {
-                            Text("x\(item.quantity)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                .onDelete { indexSet in
-                    indexSet.forEach { vm.deleteShoppingItem(vm.shoppingItems[$0]) }
-                }
-            }
-            .navigationTitle("Alışveriş Listesi")
-            .toolbar {
-                Button {
-                    showAddItem = true
-                } label: {
-                    Image(systemName: "plus")
-                }
-            }
-            .sheet(isPresented: $showAddItem) {
-                NavigationStack {
-                    Form {
-                        TextField("Ürün adı", text: $newItemName)
-                        Picker("Kategori", selection: $newItemCategory) {
-                            ForEach(categories, id: \.self) { Text($0) }
-                        }
-                        Stepper("Adet: \(newItemQuantity)", value: $newItemQuantity, in: 1...99)
-                    }
-                    .navigationTitle("Yeni Ürün")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("İptal") { showAddItem = false }
-                        }
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Ekle") {
-                                vm.addShoppingItem(name: newItemName, quantity: newItemQuantity, category: newItemCategory)
-                                showAddItem = false
-                                newItemName = ""
-                                newItemQuantity = 1
-                            }
-                            .disabled(newItemName.isEmpty)
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
-            }
         }
     }
 }
