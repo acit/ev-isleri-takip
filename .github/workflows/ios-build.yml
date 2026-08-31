@@ -67,27 +67,35 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            BUILD_DIR=build/Output \
-            build | xcpretty
+            | xcpretty
 
       - name: Export IPA
         run: |
           cd ios
-          APP_PATH=$(find build/Output -name "AileTakip.app" -type d | head -1)
+          echo "=== Finding AileTakip.app ==="
+          APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          
           if [ -z "$APP_PATH" ]; then
-            echo "❌ AileTakip.app not found!"
-            find build -name "*.app" -type d
+            echo "ERROR: AileTakip.app not found in build/DerivedData"
+            echo "=== Listing .app directories ==="
+            find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            echo "=== Listing build directory structure ==="
+            find build -maxdepth 4 -type d 2>/dev/null || echo "No build dir"
             exit 1
           fi
           
+          echo "Found app: $APP_PATH"
+          
+          # Create IPA structure
           mkdir -p build/IPA/Payload
           cp -r "$APP_PATH" build/IPA/Payload/
           
+          # Create IPA (zip)
           cd build/IPA
           zip -r ../../AileTakip-v3.3.0.ipa Payload/
           cd ../..
           
-          echo "✅ IPA created:"
+          echo "=== IPA Created ==="
           ls -lh AileTakip-v3.3.0.ipa
 
       - name: Upload IPA artifact
