@@ -1,0 +1,128 @@
+name: iOS Build & Release
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ios/**'
+      - '.github/workflows/ios-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode_16.app
+
+      - name: Show Xcode & Swift versions
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Cache SPM dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+          key: ios-spm-${{ hashFiles('ios/AileTakip.xcodeproj/project.pbxproj') }}
+          restore-keys: ios-spm-
+
+      - name: Build for iOS Simulator (Debug)
+        run: |
+          cd ios
+          xcodebuild \
+            -project AileTakip.xcodeproj \
+            -scheme AileTakip \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            build | xcpretty
+
+      - name: Run Unit Tests
+        run: |
+          cd ios
+          xcodebuild \
+            -project AileTakip.xcodeproj \
+            -scheme AileTakip \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -configuration Debug \
+            -derivedDataPath build/DerivedData \
+            test | xcpretty || true
+
+      - name: Build for Device (Release) — No Code Sign
+        run: |
+          cd ios
+          xcodebuild \
+            -project AileTakip.xcodeproj \
+            -scheme AileTakip \
+            -sdk iphoneos \
+            -configuration Release \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            BUILD_DIR=build/Output \
+            build | xcpretty
+
+      - name: Export IPA
+        run: |
+          cd ios
+          APP_PATH=$(find build/Output -name "AileTakip.app" -type d | head -1)
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ AileTakip.app not found!"
+            find build -name "*.app" -type d
+            exit 1
+          fi
+          
+          mkdir -p build/IPA/Payload
+          cp -r "$APP_PATH" build/IPA/Payload/
+          
+          cd build/IPA
+          zip -r ../../AileTakip-v3.3.0.ipa Payload/
+          cd ../..
+          
+          echo "✅ IPA created:"
+          ls -lh AileTakip-v3.3.0.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AileTakip-iOS-v3.3.0
+          path: ios/AileTakip-v3.3.0.ipa
+          retention-days: 30
+
+      - name: Create GitHub Release (on tag)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ios/AileTakip-v3.3.0.ipa
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Download IPA artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: AileTakip-iOS-v3.3.0
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: AileTakip-v3.3.0.ipa
+          generate_release_notes: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

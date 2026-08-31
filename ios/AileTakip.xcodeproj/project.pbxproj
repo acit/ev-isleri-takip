@@ -13,6 +13,7 @@
 		A1000004 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004 /* DashboardView.swift */; };
 		A1000005 /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* TasksView.swift */; };
 		A1000006 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006 /* MainViewModel.swift */; };
+		A1000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000007 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -22,6 +23,8 @@
 		A2000004 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		A2000005 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
 		A2000006 /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
+		A2000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2000010 /* AileTakip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AileTakip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -40,6 +43,7 @@
 				A3000004 /* Models */,
 				A3000005 /* Views */,
 				A3000006 /* ViewModels */,
+				A2000007 /* Assets.xcassets */,
 			);
 			path = AileTakip;
 			sourceTree = "<group>";
@@ -85,6 +89,7 @@
 			buildConfigurationList = A5000003 /* Build configuration list for PBXNativeTarget "AileTakip" */;
 			buildPhases = (
 				A6000001 /* Sources */,
+				A6000002 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -139,6 +144,17 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A6000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000007 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
 		A8000001 /* Debug */ = {
@@ -200,7 +216,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Aile Takip";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -212,7 +227,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.3.0;
+				CURRENT_PROJECT_VERSION = 6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -229,7 +245,6 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Aile Takip";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -241,7 +256,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 3.3.0;
+				CURRENT_PROJECT_VERSION = 6;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
