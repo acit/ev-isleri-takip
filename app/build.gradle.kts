@@ -22,10 +22,13 @@ android {
     signingConfigs {
         create("release") {
             val keystorePath = System.getenv("RELEASE_STORE_FILE") ?: "../aile-takip-release.jks"
-            storeFile = file(keystorePath)
-            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "aile1234"
-            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "aile-takip"
-            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "aile1234"
+            val ksFile = file(keystorePath)
+            if (ksFile.exists()) {
+                storeFile = ksFile
+                storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "aile1234"
+                keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "aile-takip"
+                keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "aile1234"
+            }
         }
     }
 
@@ -33,7 +36,12 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
-            signingConfig = signingConfigs.getByName("release")
+            val ksFile = file(
+                System.getenv("RELEASE_STORE_FILE") ?: "../aile-takip-release.jks"
+            )
+            if (ksFile.exists()) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
