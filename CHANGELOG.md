@@ -4,6 +4,14 @@ Aile Takip uygulamasının tüm değişiklikleri.
 
 ---
 
+## [3.3.1] - 2026-08-31
+
+### 🐛 Düzeltmeler
+- iOS build workflow Export IPA adımı düzeltildi (`DerivedData` arama yolu)
+- iOS proje dosyaları güncellemesi (assets, build phase)
+
+---
+
 ## [3.3.0] - 2026-08-31
 
 ### 📱 Versiyon Yükseltme
