@@ -42,6 +42,7 @@ jobs:
         run: |
           echo "$KEYSTORE_BASE64" | base64 -d > aile-takip-release.jks
           echo "Keystore decoded successfully"
+          echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
@@ -67,13 +68,22 @@ jobs:
 
       - name: Rename APK files
         run: |
-          cp app/build/outputs/apk/release/app-release.apk \
-             "AileTakip-v${{ steps.version.outputs.version }}-release.apk"
+          VERSION=${{ steps.version.outputs.version }}
+          # Find release APK (may be app-release.apk or app-release-unsigned.apk)
+          RELEASE_APK=$(find app/build/outputs/apk/release -name "app-release*.apk" | head -1)
+          if [ -n "$RELEASE_APK" ]; then
+            cp "$RELEASE_APK" "AileTakip-v${VERSION}-release.apk"
+            echo "Release APK: $RELEASE_APK"
+          else
+            echo "WARNING: No release APK found"
+          fi
           cp app/build/outputs/apk/debug/app-debug.apk \
-             "AileTakip-v${{ steps.version.outputs.version }}-debug.apk"
+             "AileTakip-v${VERSION}-debug.apk"
+          ls -lh AileTakip-v${VERSION}-*.apk 2>/dev/null || echo "No APK files"
           echo "✅ APK files renamed"
 
       - name: Upload Release APK
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
@@ -95,6 +105,7 @@ jobs:
             AileTakip-v${{ steps.version.outputs.version }}-release.apk
             AileTakip-v${{ steps.version.outputs.version }}-debug.apk
           retention-days: 1
+          if-no-files-found: warn
 
   # ============================================
   # iOS BUILD
