@@ -184,16 +184,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: android-release-apk
+          path: .
+        continue-on-error: true
 
       - name: Download Android Debug APK
         uses: actions/download-artifact@v4
         with:
           name: android-debug-apk
+          path: .
+        continue-on-error: true
 
       - name: Download iOS IPA
         uses: actions/download-artifact@v4
         with:
           name: ios-ipa
+          path: .
         continue-on-error: true
 
       - name: List files
