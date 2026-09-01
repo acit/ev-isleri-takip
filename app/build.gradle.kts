@@ -21,10 +21,11 @@ android {
 
     signingConfigs {
         create("release") {
-            storeFile = file("../aile-takip-release.jks")
-            storePassword = "aile1234"
-            keyAlias = "aile-takip"
-            keyPassword = "aile1234"
+            val keystorePath = System.getenv("RELEASE_STORE_FILE") ?: "../aile-takip-release.jks"
+            storeFile = file(keystorePath)
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD") ?: "aile1234"
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS") ?: "aile-takip"
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD") ?: "aile1234"
         }
     }
 
