@@ -12,6 +12,16 @@ data class Attachment(
     val createdAt: Long = System.currentTimeMillis()
 )
 
+// Fiyat gecmisi kaydi
+data class PriceRecord(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val price: Double,
+    val store: String,
+    val date: String,  // yyyy-MM-dd format
+    val quantity: Int = 1,
+    val notes: String = ""
+)
+
 @Entity(tableName = "tasks")
 data class Task(
     @PrimaryKey val id: String = java.util.UUID.randomUUID().toString(),
@@ -37,6 +47,12 @@ data class InventoryItem(
     val minStock: Int = 0,
     val location: String = "",
     val notes: String = "",
+    val imageBase64: String = "",  // Urun resmi (Base64)
+    val lastPrice: Double = 0.0,  // Son alisveris fiyati
+    val lastStore: String = "",  // Son alisveris magazasi
+    val lastPurchaseDate: String = "",  // Son alisveris tarihi
+    val averagePrice: Double = 0.0,  // Ortalama fiyat
+    val priceHistory: String = "",  // JSON array of PriceRecord objects
     val createdAt: Long = System.currentTimeMillis(),
     val syncVersion: Long = System.currentTimeMillis()
 )

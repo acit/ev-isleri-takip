@@ -145,8 +145,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteTask(task: Task) { viewModelScope.launch { repo.deleteTask(task); addSyncEvent("tasks", "delete") } }
 
     // ===== INVENTORY =====
-    fun addInventory(name: String, category: String = "Genel", quantity: Int = 1, unit: String = "adet", minStock: Int = 0, location: String = "") {
-        viewModelScope.launch { repo.upsertInventory(InventoryItem(name = name, category = category, quantity = quantity, unit = unit, minStock = minStock, location = location)); addSyncEvent("inventory", "insert") }
+    fun addInventory(name: String, category: String = "Genel", quantity: Int = 1, unit: String = "adet", minStock: Int = 0, location: String = "", imageBase64: String = "") {
+        viewModelScope.launch { repo.upsertInventory(InventoryItem(name = name, category = category, quantity = quantity, unit = unit, minStock = minStock, location = location, imageBase64 = imageBase64)); addSyncEvent("inventory", "insert") }
     }
     fun updateInventory(item: InventoryItem) { viewModelScope.launch { repo.upsertInventory(item); addSyncEvent("inventory", "update") } }
     fun deleteInventory(item: InventoryItem) { viewModelScope.launch { repo.deleteInventory(item); addSyncEvent("inventory", "delete") } }
