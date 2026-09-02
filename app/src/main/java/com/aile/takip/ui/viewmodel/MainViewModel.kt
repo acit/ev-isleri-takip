@@ -116,11 +116,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (a == null || a.pin == pin) isAuthenticated.value = true
         }
     }
-    fun setupPin(pin: String, name: String, email: String) {
-        viewModelScope.launch { repo.upsertAuth(UserAuth(pin = pin, name = name, email = email)) }
+    fun setupPin(pin: String, name: String, email: String, securityQuestion: String = "", securityAnswer: String = "") {
+        viewModelScope.launch { 
+            repo.upsertAuth(UserAuth(
+                pin = pin, name = name, email = email,
+                securityQuestion = securityQuestion, 
+                securityAnswer = securityAnswer.lowercase().trim()
+            )) 
+        }
     }
     fun resetPin() {
         viewModelScope.launch { repo.upsertAuth(UserAuth(id = "main_user", pin = "", name = "", email = "")); isAuthenticated.value = true }
+    }
+    fun resetPinWithNew(newPin: String) {
+        viewModelScope.launch {
+            val current = repo.getAuthOnce()
+            if (current != null) {
+                repo.upsertAuth(current.copy(pin = newPin))
+            }
+        }
+    }
+    fun verifySecurityAnswer(answer: String): Boolean {
+        val current = auth.value
+        return current?.securityAnswer?.lowercase()?.trim() == answer.lowercase().trim()
     }
     fun logout() { isAuthenticated.value = false }
 

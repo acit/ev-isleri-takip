@@ -226,6 +226,8 @@ data class UserAuth(
     val name: String = "",
     val email: String = "",
     val phone: String = "",
+    val securityQuestion: String = "",  // Guvenlik sorusu (sifre sifirlama icin)
+    val securityAnswer: String = "",  // Guvenlik cevabi (kucuk harif, bosluklu)
     val createdAt: Long = System.currentTimeMillis()
 )
 
