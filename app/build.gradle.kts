@@ -14,8 +14,8 @@ android {
         applicationId = "com.aile.takip"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "3.4.1"
+        versionCode = 10
+        versionName = "3.4.2"
         vectorDrawables.useSupportLibrary = true
     }
 
