@@ -38,8 +38,13 @@ class FirebaseSyncService(private val db: AppDatabase) {
     suspend fun connect(familyGroupId: String): Boolean {
         return try {
             _syncState.value = SyncState.Connecting
-            database = FirebaseDatabase.getInstance("https://aile-takip-app-default-rtdb.firebaseio.com")
-            auth = FirebaseAuth.getInstance()
+            try {
+                database = FirebaseDatabase.getInstance("https://aile-takip-app-default-rtdb.firebaseio.com")
+                auth = FirebaseAuth.getInstance()
+            } catch (e: Exception) {
+                _syncState.value = SyncState.Error("Firebase baslatilamadi: ${e.message}")
+                return false
+            }
             if (auth?.currentUser == null) {
                 auth?.signInAnonymously()?.await()
             }
