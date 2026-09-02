@@ -50,6 +50,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // Barcode/QR scan result
     val lastScanResult = mutableStateOf<String?>(null)
+    val isLookingUpBarcode = mutableStateOf(false)
+    val lastLookupResult = mutableStateOf<com.aile.takip.utils.BarcodeLookupHelper.ProductInfo?>(null)
 
     // Existing data
     val tasks = repo.tasks.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -493,6 +495,29 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             repo.deleteSleep(s)
             addSyncEvent("sleep_logs", "delete")
         }
+    }
+
+    // ===== BARCODE LOOKUP =====
+    fun lookupBarcode(barcode: String) {
+        viewModelScope.launch {
+            isLookingUpBarcode.value = true
+            try {
+                val result = com.aile.takip.utils.BarcodeLookupHelper.lookupBarcode(barcode)
+                lastLookupResult.value = result
+            } catch (e: Exception) {
+                lastLookupResult.value = com.aile.takip.utils.BarcodeLookupHelper.ProductInfo(
+                    barcode = barcode,
+                    name = "",
+                    found = false
+                )
+            } finally {
+                isLookingUpBarcode.value = false
+            }
+        }
+    }
+
+    fun clearLookupResult() {
+        lastLookupResult.value = null
     }
 
     override fun onCleared() {

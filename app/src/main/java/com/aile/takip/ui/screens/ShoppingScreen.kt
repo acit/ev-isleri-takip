@@ -5,10 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,13 +28,37 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
     var editName by remember { mutableStateOf("") }
     var editCategory by remember { mutableStateOf("Market") }
     var editQuantity by remember { mutableStateOf("1") }
+    
+    // Barcode lookup state
+    val isLookingUp by vm.isLookingUpBarcode
+    val lookupResult by vm.lastLookupResult
+    var showLookupResult by remember { mutableStateOf(false) }
 
     // Handle scan result from barcode scanner
     val scanResult by vm.lastScanResult
     LaunchedEffect(scanResult) {
         if (scanResult != null) {
-            newItem = scanResult ?: ""
+            val barcode = scanResult ?: ""
+            // Start barcode lookup
+            vm.lookupBarcode(barcode)
             vm.lastScanResult.value = null
+        }
+    }
+    
+    // Handle lookup result
+    LaunchedEffect(lookupResult) {
+        lookupResult?.let { result ->
+            if (result.found) {
+                // Product found - auto-fill
+                newItem = result.name
+                category = result.category.ifEmpty { "Genel" }
+                showLookupResult = true
+            } else if (result.barcode.isNotEmpty()) {
+                // Product not found - ask user
+                newItem = result.barcode
+                showLookupResult = true
+            }
+            vm.clearLookupResult()
         }
     }
 
@@ -45,6 +66,36 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
     val checked = items.filter { it.checked }
 
     PageScaffold("\uD83D\uDED2", "\uD83D\uDED2") {
+        // Barcode lookup indicator
+        if (isLookingUp) {
+            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)) {
+                Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Barkod aranıyor...", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+        
+        // Lookup result indicator
+        if (showLookupResult && lookupResult == null) {
+            Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)) {
+                Row(modifier = Modifier.padding(12.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.CheckCircle, "Bulundu", tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Ürün bulundu!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
+                        Text("Otomatik dolduruldu", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    IconButton(onClick = { showLookupResult = false }, modifier = Modifier.size(24.dp)) {
+                        Icon(Icons.Default.Close, "Kapat", modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
         // Add new item section
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedTextField(value = newItem, onValueChange = { newItem = it }, modifier = Modifier.weight(1f),
@@ -59,7 +110,11 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
                 }
             }
             FilledIconButton(onClick = {
-                if (newItem.isNotBlank()) { vm.addShoppingItem(newItem, category = category); newItem = "" }
+                if (newItem.isNotBlank()) { 
+                    vm.addShoppingItem(newItem, category = category)
+                    newItem = ""
+                    showLookupResult = false
+                }
             }, colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)) {
                 Icon(Icons.Default.Add, "Ekle")
             }
