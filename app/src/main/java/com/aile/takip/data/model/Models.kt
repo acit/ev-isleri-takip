@@ -116,6 +116,16 @@ data class ShoppingItem(
     val category: String = "Market",
     val checked: Boolean = false,
     val addedBy: String = "",
+    // Yeni urun bilgileri
+    val barcode: String = "",  // Barkod numarasi
+    val brand: String = "",  // Marka
+    val description: String = "",  // Aciklama
+    val imageBase64: String = "",  // Urun resmi
+    val unitPrice: Double = 0.0,  // Birim fiyat
+    val totalPrice: Double = 0.0,  // Toplam fiyat (miktar x birim)
+    val store: String = "",  // Alisveris yapilan magaza
+    val notes: String = "",  // Notlar
+    val lastPurchaseDate: String = "",  // Son alisveris tarihi
     val createdAt: Long = System.currentTimeMillis(),
     val syncVersion: Long = System.currentTimeMillis()
 )

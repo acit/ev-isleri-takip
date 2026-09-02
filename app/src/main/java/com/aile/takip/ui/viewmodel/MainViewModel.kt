@@ -244,8 +244,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun deleteMessage(m: Message) { viewModelScope.launch { repo.deleteMessage(m) } }
 
     // ===== SHOPPING =====
-    fun addShoppingItem(name: String, quantity: Int = 1, category: String = "Market", addedBy: String = "") {
-        viewModelScope.launch { repo.upsertShopping(ShoppingItem(name = name, quantity = quantity, category = category, addedBy = addedBy)); addSyncEvent("shopping", "insert") }
+    fun addShoppingItem(name: String, quantity: Int = 1, category: String = "Market", addedBy: String = "", barcode: String = "", brand: String = "", description: String = "", unitPrice: Double = 0.0, store: String = "", imageBase64: String = "") {
+        viewModelScope.launch {
+            val totalPrice = unitPrice * quantity
+            repo.upsertShopping(ShoppingItem(
+                name = name, quantity = quantity, category = category, addedBy = addedBy,
+                barcode = barcode, brand = brand, description = description,
+                unitPrice = unitPrice, totalPrice = totalPrice, store = store, imageBase64 = imageBase64
+            ))
+            addSyncEvent("shopping", "insert")
+        }
     }
     fun toggleShoppingItem(item: ShoppingItem) {
         viewModelScope.launch {
