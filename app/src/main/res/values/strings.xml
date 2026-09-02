@@ -1,4 +1,162 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Aile Takip</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Ana Sayfa</string>
+    <string name="nav_tasks">Görevler</string>
+    <string name="nav_shopping">Alışveriş</string>
+    <string name="nav_messages">Mesajlar</string>
+    <string name="nav_profile">Profil</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_title">Ana Sayfa</string>
+    <string name="dashboard_tasks_pending">%s bekleyen</string>
+    <string name="dashboard_shopping_pending">%s listede</string>
+    <string name="dashboard_messages">%s mesaj</string>
+    <string name="dashboard_settings">Ayarlar</string>
+    
+    <!-- Tasks -->
+    <string name="tasks_title">Görevler</string>
+    <string name="tasks_add_hint">Yeni görev…</string>
+    <string name="tasks_assignee_hint">Sorumlu (isteğe bağlı)…</string>
+    <string name="tasks_due_date">Bitiş tarihi</string>
+    <string name="tasks_edit">Düzenle</string>
+    <string name="tasks_delete">Sil</string>
+    <string name="tasks_save">Kaydet</string>
+    <string name="tasks_cancel">İptal</string>
+    
+    <!-- Shopping -->
+    <string name="shopping_title">Alışveriş</string>
+    <string name="shopping_add_hint">Ürün ekle…</string>
+    <string name="shopping_scan">Tara</string>
+    <string name="shopping_to_buy">Alınacaklar (%d)</string>
+    <string name="shopping_bought">Alınanlar (%d)</string>
+    <string name="shopping_edit">Ürünü Düzenle</string>
+    <string name="shopping_item_name">Ürün Adı</string>
+    <string name="shopping_quantity">Miktar</string>
+    <string name="shopping_category">Kategori</string>
+    
+    <!-- Inventory -->
+    <string name="inventory_title">Envanter</string>
+    <string name="inventory_add">Ürün Ekle</string>
+    <string name="inventory_name_hint">Ürün adı</string>
+    <string name="inventory_location_hint">Konum (buzdolabı, kiler vb.)</string>
+    <string name="inventory_min_stock">Min Stok</string>
+    <string name="inventory_stock_info">Stok: %s ürün • Düşük stok: %s</string>
+    <string name="inventory_edit">Ürünü Düzenle</string>
+    <string name="inventory_add_price">Fiyat Ekle</string>
+    <string name="inventory_price_history">Fiyat Geçmişi</string>
+    <string name="inventory_price">Fiyat (₺)</string>
+    <string name="inventory_store">Market / Mağaza</string>
+    
+    <!-- Budget -->
+    <string name="budget_title">Bütçe</string>
+    <string name="budget_monthly">Aylık Bütçe</string>
+    <string name="budget_add">Bütçe Ekle</string>
+    <string name="budget_add_expense">Harcama Ekle</string>
+    <string name="budget_edit">Bütçeyi Düzenle</string>
+    <string name="budget_expense_edit">Harcamayı Düzenle</string>
+    <string name="budget_category">Kategori</string>
+    <string name="budget_limit">Aylık Limit (₺)</string>
+    <string name="budget_amount">Tutar (₺)</string>
+    <string name="budget_pending">Bekleyen</string>
+    <string name="budget_paid">Ödenen</string>
+    <string name="budget_expenses">Son Harcamalar</string>
+    
+    <!-- Notes -->
+    <string name="notes_title">Notlar</string>
+    <string name="notes_add">Yeni Not</string>
+    <string name="notes_search">Notlarda ara…</string>
+    <string name="notes_empty">Henüz not yok</string>
+    <string name="notes_empty_hint">Yeni not eklemek için + butonuna tıklayın</string>
+    <string name="notes_archive">Arşiv</string>
+    <string name="notes_pin">Sabitlenmiş</string>
+    
+    <!-- Reminders -->
+    <string name="reminders_title">Hatırlatıcılar</string>
+    <string name="reminders_add">Yeni Hatırlatıcı</string>
+    <string name="reminders_active">Aktif</string>
+    <string name="reminders_completed">Tamamlanan</string>
+    <string name="reminders_all">Tümü</string>
+    <string name="reminders_empty">Hatırlatıcı eklenmemiş</string>
+    <string name="reminders_empty_hint">Yeni hatırlatıcı eklemek için + butonuna tıklayın</string>
+    
+    <!-- Health -->
+    <string name="health_title">Sağlık</string>
+    <string name="health_calories">Kalori</string>
+    <string name="health_water">Su</string>
+    <string name="health_sleep">Uyku</string>
+    <string name="health_workout">Egzersiz</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">Profil</string>
+    <string name="profile_version">v%s · Tüm modüller aktif</string>
+    <string name="profile_stats">İstatistikler</string>
+    <string name="profile_appearance">Görünüm Ayarları</string>
+    <string name="profile_dynamic_color">Material You Renkleri</string>
+    <string name="profile_dynamic_color_desc">Duvar kağıdınızdan renk alır (Android 12+)</string>
+    <string name="profile_dark_mode">Karanlık Mod</string>
+    <string name="profile_dark_mode_desc">Sistem ayarını mı kullanacaksınız?</string>
+    <string name="profile_dark">Karanlık</string>
+    <string name="profile_light">Aydınlık</string>
+    <string name="profile_language">Dil</string>
+    <string name="profile_language_desc">Uygulama dilini seçin</string>
+    <string name="profile_family_members">Aile Üyeleri (%d)</string>
+    <string name="profile_logout">Çıkış Yap</string>
+    <string name="profile_points">%s puan</string>
+    
+    <!-- Scanner -->
+    <string name="scanner_barcode">Barkod Tara</string>
+    <string name="scanner_qr">QR Kod Tara</string>
+    <string name="scanner_any">Barkod / QR Tara</string>
+    <string name="scanner_barcode_desc">Ürün barkodunu kameraya gösterin</string>
+    <string name="scanner_qr_desc">QR kodu kameraya gösterin</string>
+    <string name="scanner_any_desc">Barkod veya QR kodunu kameraya gösterin</string>
+    <string name="scanner_looking_up">Barkod aranıyor…</string>
+    <string name="scanner_found">Ürün bulundu!</string>
+    <string name="scanner_found_hint">Otomatik dolduruldu</string>
+    
+    <!-- Sync -->
+    <string name="sync_title">Senkronizasyon</string>
+    <string name="sync_connect">Bağlan</string>
+    <string name="sync_disconnect">Bağlantıyı Kes</string>
+    <string name="sync_group_id">Grup ID</string>
+    
+    <!-- Common -->
+    <string name="common_save">Kaydet</string>
+    <string name="common_cancel">İptal</string>
+    <string name="common_delete">Sil</string>
+    <string name="common_edit">Düzenle</string>
+    <string name="common_add">Ekle</string>
+    <string name="common_search">Ara</string>
+    <string name="common_close">Kapat</string>
+    <string name="common_back">Geri</string>
+    <string name="common_loading">Yükleniyor…</string>
+    <string name="common_error">Hata oluştu</string>
+    <string name="common_success">Başarılı</string>
+    <string name="common_yes">Evet</string>
+    <string name="common_no">Hayır</string>
+    
+    <!-- Categories -->
+    <string name="category_general">Genel</string>
+    <string name="category_shopping">Alışveriş</string>
+    <string name="category_food">Gıda</string>
+    <string name="category_cleaning">Temizlik</string>
+    <string name="category_personal">Kişisel</string>
+    <string name="category_health">Sağlık</string>
+    <string name="category_education">Eğitim</string>
+    <string name="category_work">İş</string>
+    <string name="category_other">Diğer</string>
+    
+    <!-- Priority -->
+    <string name="priority_low">düşük</string>
+    <string name="priority_medium">orta</string>
+    <string name="priority_high">yüksek</string>
+    
+    <!-- Status -->
+    <string name="status_pending">bekleyen</string>
+    <string name="status_in_progress">devam</string>
+    <string name="status_completed">tamamlanan</string>
+    <string name="status_paid">ödendi</string>
 </resources>

@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Family Tracker</string>
+    
+    <!-- Navigation -->
+    <string name="nav_home">Home</string>
+    <string name="nav_tasks">Tasks</string>
+    <string name="nav_shopping">Shopping</string>
+    <string name="nav_messages">Messages</string>
+    <string name="nav_profile">Profile</string>
+    
+    <!-- Dashboard -->
+    <string name="dashboard_title">Home</string>
+    <string name="dashboard_tasks_pending">%s pending</string>
+    <string name="dashboard_shopping_pending">%s in list</string>
+    <string name="dashboard_messages">%s messages</string>
+    <string name="dashboard_settings">Settings</string>
+    
+    <!-- Tasks -->
+    <string name="tasks_title">Tasks</string>
+    <string name="tasks_add_hint">New task…</string>
+    <string name="tasks_assignee_hint">Assignee (optional)…</string>
+    <string name="tasks_due_date">Due date</string>
+    <string name="tasks_edit">Edit</string>
+    <string name="tasks_delete">Delete</string>
+    <string name="tasks_save">Save</string>
+    <string name="tasks_cancel">Cancel</string>
+    
+    <!-- Shopping -->
+    <string name="shopping_title">Shopping</string>
+    <string name="shopping_add_hint">Add item…</string>
+    <string name="shopping_scan">Scan</string>
+    <string name="shopping_to_buy">To Buy (%d)</string>
+    <string name="shopping_bought">Bought (%d)</string>
+    <string name="shopping_edit">Edit Item</string>
+    <string name="shopping_item_name">Item Name</string>
+    <string name="shopping_quantity">Quantity</string>
+    <string name="shopping_category">Category</string>
+    
+    <!-- Inventory -->
+    <string name="inventory_title">Inventory</string>
+    <string name="inventory_add">Add Product</string>
+    <string name="inventory_name_hint">Product name</string>
+    <string name="inventory_location_hint">Location (fridge, pantry, etc.)</string>
+    <string name="inventory_min_stock">Min Stock</string>
+    <string name="inventory_stock_info">Stock: %s items • Low stock: %s</string>
+    <string name="inventory_edit">Edit Product</string>
+    <string name="inventory_add_price">Add Price</string>
+    <string name="inventory_price_history">Price History</string>
+    <string name="inventory_price">Price ($)</string>
+    <string name="inventory_store">Store / Shop</string>
+    
+    <!-- Budget -->
+    <string name="budget_title">Budget</string>
+    <string name="budget_monthly">Monthly Budget</string>
+    <string name="budget_add">Add Budget</string>
+    <string name="budget_add_expense">Add Expense</string>
+    <string name="budget_edit">Edit Budget</string>
+    <string name="budget_expense_edit">Edit Expense</string>
+    <string name="budget_category">Category</string>
+    <string name="budget_limit">Monthly Limit ($)</string>
+    <string name="budget_amount">Amount ($)</string>
+    <string name="budget_pending">Pending</string>
+    <string name="budget_paid">Paid</string>
+    <string name="budget_expenses">Recent Expenses</string>
+    
+    <!-- Notes -->
+    <string name="notes_title">Notes</string>
+    <string name="notes_add">New Note</string>
+    <string name="notes_search">Search notes…</string>
+    <string name="notes_empty">No notes yet</string>
+    <string name="notes_empty_hint">Tap + to add a new note</string>
+    <string name="notes_archive">Archive</string>
+    <string name="notes_pin">Pinned</string>
+    
+    <!-- Reminders -->
+    <string name="reminders_title">Reminders</string>
+    <string name="reminders_add">New Reminder</string>
+    <string name="reminders_active">Active</string>
+    <string name="reminders_completed">Completed</string>
+    <string name="reminders_all">All</string>
+    <string name="reminders_empty">No reminders yet</string>
+    <string name="reminders_empty_hint">Tap + to add a new reminder</string>
+    
+    <!-- Health -->
+    <string name="health_title">Health</string>
+    <string name="health_calories">Calories</string>
+    <string name="health_water">Water</string>
+    <string name="health_sleep">Sleep</string>
+    <string name="health_workout">Workout</string>
+    
+    <!-- Profile -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_version">v%s · All modules active</string>
+    <string name="profile_stats">Statistics</string>
+    <string name="profile_appearance">Appearance Settings</string>
+    <string name="profile_dynamic_color">Material You Colors</string>
+    <string name="profile_dynamic_color_desc">Uses colors from your wallpaper (Android 12+)</string>
+    <string name="profile_dark_mode">Dark Mode</string>
+    <string name="profile_dark_mode_desc">Use system settings?</string>
+    <string name="profile_dark">Dark</string>
+    <string name="profile_light">Light</string>
+    <string name="profile_language">Language</string>
+    <string name="profile_language_desc">Select app language</string>
+    <string name="profile_family_members">Family Members (%d)</string>
+    <string name="profile_logout">Logout</string>
+    <string name="profile_points">%s points</string>
+    
+    <!-- Scanner -->
+    <string name="scanner_barcode">Scan Barcode</string>
+    <string name="scanner_qr">Scan QR Code</string>
+    <string name="scanner_any">Scan Barcode / QR</string>
+    <string name="scanner_barcode_desc">Point camera at product barcode</string>
+    <string name="scanner_qr_desc">Point camera at QR code</string>
+    <string name="scanner_any_desc">Point camera at barcode or QR code</string>
+    <string name="scanner_looking_up">Looking up barcode…</string>
+    <string name="scanner_found">Product found!</string>
+    <string name="scanner_found_hint">Auto-filled</string>
+    
+    <!-- Sync -->
+    <string name="sync_title">Synchronization</string>
+    <string name="sync_connect">Connect</string>
+    <string name="sync_disconnect">Disconnect</string>
+    <string name="sync_group_id">Group ID</string>
+    
+    <!-- Common -->
+    <string name="common_save">Save</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_delete">Delete</string>
+    <string name="common_edit">Edit</string>
+    <string name="common_add">Add</string>
+    <string name="common_search">Search</string>
+    <string name="common_close">Close</string>
+    <string name="common_back">Back</string>
+    <string name="common_loading">Loading…</string>
+    <string name="common_error">Error occurred</string>
+    <string name="common_success">Success</string>
+    <string name="common_yes">Yes</string>
+    <string name="common_no">No</string>
+    
+    <!-- Categories -->
+    <string name="category_general">General</string>
+    <string name="category_shopping">Shopping</string>
+    <string name="category_food">Food</string>
+    <string name="category_cleaning">Cleaning</string>
+    <string name="category_personal">Personal</string>
+    <string name="category_health">Health</string>
+    <string name="category_education">Education</string>
+    <string name="category_work">Work</string>
+    <string name="category_other">Other</string>
+    
+    <!-- Priority -->
+    <string name="priority_low">low</string>
+    <string name="priority_medium">medium</string>
+    <string name="priority_high">high</string>
+    
+    <!-- Status -->
+    <string name="status_pending">pending</string>
+    <string name="status_in_progress">in progress</string>
+    <string name="status_completed">completed</string>
+    <string name="status_paid">paid</string>
+</resources>

@@ -11,6 +11,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
+import com.aile.takip.R
 import com.aile.takip.notification.ReminderWorker
 import com.aile.takip.ui.screens.*
 import com.aile.takip.ui.theme.*
@@ -20,6 +21,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Apply saved locale
+        com.aile.takip.utils.LocaleHelper.onAttach(this)
 
         // Schedule reminder check worker
         ReminderWorker.schedulePeriodicCheck(this)
@@ -59,11 +63,11 @@ fun MainScreen(vm: MainViewModel) {
             bottomBar = {
                 NavigationBar {
                     val items = listOf(
-                        Triple("dashboard", "Ana Sayfa", "\uD83C\uDFE0"),
-                        Triple("tasks", "Görevler", "\uD83D\uDCCB"),
-                        Triple("shopping", "Alışveriş", "\uD83D\uDED2"),
-                        Triple("messages", "Mesajlar", "\uD83D\uDCAC"),
-                        Triple("profile", "Profil", "\uD83D\uDC64"),
+                        Triple("dashboard", androidx.compose.ui.res.stringResource(R.string.nav_home), "\uD83C\uDFE0"),
+                        Triple("tasks", androidx.compose.ui.res.stringResource(R.string.nav_tasks), "\uD83D\uDCCB"),
+                        Triple("shopping", androidx.compose.ui.res.stringResource(R.string.nav_shopping), "\uD83D\uDED2"),
+                        Triple("messages", androidx.compose.ui.res.stringResource(R.string.nav_messages), "\uD83D\uDCAC"),
+                        Triple("profile", androidx.compose.ui.res.stringResource(R.string.nav_profile), "\uD83D\uDC64"),
                     )
                     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
                     items.forEach { (route, title, icon) ->

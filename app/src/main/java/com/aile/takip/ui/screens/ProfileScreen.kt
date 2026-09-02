@@ -26,6 +26,7 @@ fun ProfileScreen(vm: MainViewModel) {
     val useDynamicColor by vm.useDynamicColor
     val isDarkMode by vm.isDarkMode
     val useSystemTheme by vm.useSystemTheme
+    val currentLanguage by vm.currentLanguage
 
     Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
         Text("\u2699\uFE0F Profil", style = MaterialTheme.typography.headlineMedium)
@@ -112,6 +113,33 @@ fun ProfileScreen(vm: MainViewModel) {
                 Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Text(if (isDarkMode) "\uD83C\uDF19 Karanlik" else "\u2600\uFE0F Aydinlik", modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
                     Switch(checked = isDarkMode, onCheckedChange = { vm.setDarkMode(it) })
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(12.dp))
+        
+        // Language Selection
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("\uD83C\uDF10 Dil", modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                }
+                Text("Uygulama dilini secin", 
+                    style = MaterialTheme.typography.bodySmall, 
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(
+                        selected = currentLanguage == "tr",
+                        onClick = { vm.setLanguage("tr") },
+                        label = { Text("Turkce") }
+                    )
+                    FilterChip(
+                        selected = currentLanguage == "en",
+                        onClick = { vm.setLanguage("en") },
+                        label = { Text("English") }
+                    )
                 }
             }
         }

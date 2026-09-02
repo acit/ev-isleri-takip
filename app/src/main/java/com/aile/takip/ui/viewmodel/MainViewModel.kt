@@ -52,6 +52,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     var useDynamicColor = mutableStateOf(true)
     var isDarkMode = mutableStateOf(false)
     var useSystemTheme = mutableStateOf(true)
+    var currentLanguage = mutableStateOf("tr")
 
     // Barcode/QR scan result
     val lastScanResult = mutableStateOf<String?>(null)
@@ -135,6 +136,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun useSystemTheme() {
         useSystemTheme.value = true
+    }
+
+    // ===== LANGUAGE =====
+    fun setLanguage(language: String) {
+        currentLanguage.value = language
     }
 
     // ===== TASKS =====
