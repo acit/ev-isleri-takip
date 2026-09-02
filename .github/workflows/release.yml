@@ -139,9 +139,17 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
 
+      - name: Get iOS version
+        id: ios_version
+        run: |
+          VERSION=$(grep 'MARKETING_VERSION' ios/AileTakip.xcodeproj/project.pbxproj | head -1 | sed 's/.*= \(.*\);.*/\1/' | tr -d ' ')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📱 iOS Version: $VERSION"
+
       - name: Export IPA
         run: |
           cd ios
+          VERSION=${{ steps.ios_version.outputs.version }}
           echo "=== Finding AileTakip.app ==="
           APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
@@ -159,17 +167,17 @@ jobs:
           cp -r "$APP_PATH" build/IPA/Payload/
           
           cd build/IPA
-          zip -r ../../AileTakip-v3.3.0.ipa Payload/
+          zip -r ../../AileTakip-v${VERSION}.ipa Payload/
           cd ../..
           
           echo "=== IPA Created ==="
-          ls -lh AileTakip-v3.3.0.ipa
+          ls -lh AileTakip-v${VERSION}.ipa
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: ios/AileTakip-v3.3.0.ipa
+          path: ios/AileTakip-v${{ steps.ios_version.outputs.version }}.ipa
           retention-days: 30
 
   # ============================================
