@@ -41,7 +41,7 @@ fun ProfileScreen(vm: MainViewModel) {
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text("Aile Takip", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("v3.3.1 \u00B7 Tum moduller aktif", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("v${com.aile.takip.BuildConfig.VERSION_NAME} \u00B7 Tum moduller aktif", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
