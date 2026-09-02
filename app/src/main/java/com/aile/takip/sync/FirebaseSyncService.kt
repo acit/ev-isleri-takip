@@ -39,7 +39,8 @@ class FirebaseSyncService(private val db: AppDatabase) {
         return try {
             _syncState.value = SyncState.Connecting
             try {
-                database = FirebaseDatabase.getInstance("https://aile-takip-app-default-rtdb.firebaseio.com")
+                // Firebase projesinden otomatik olarak URL'yi alir
+                database = FirebaseDatabase.getInstance()
                 auth = FirebaseAuth.getInstance()
             } catch (e: Exception) {
                 _syncState.value = SyncState.Error("Firebase baslatilamadi: ${e.message}")
