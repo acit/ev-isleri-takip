@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,17 +25,29 @@ class MainActivity : ComponentActivity() {
         ReminderWorker.schedulePeriodicCheck(this)
 
         setContent {
-            var darkMode by remember { mutableStateOf(false) }
-            AileTakipTheme(darkTheme = darkMode) {
-                MainScreen(darkMode) { darkMode = it }
+            val vm: MainViewModel = viewModel()
+            val useDynamicColor by vm.useDynamicColor
+            val useSystemTheme by vm.useSystemTheme
+            val isDarkMode by vm.isDarkMode
+            
+            // Determine dark theme based on user preference or system setting
+            val darkTheme = when {
+                useSystemTheme -> isSystemInDarkTheme()
+                else -> isDarkMode
+            }
+
+            AileTakipTheme(
+                darkTheme = darkTheme,
+                dynamicColor = useDynamicColor
+            ) {
+                MainScreen(vm)
             }
         }
     }
 }
 
 @Composable
-fun MainScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit) {
-    val vm: MainViewModel = viewModel()
+fun MainScreen(vm: MainViewModel) {
     val isLoggedIn by vm.isAuthenticated
 
     if (isLoggedIn.not()) {
@@ -48,64 +61,55 @@ fun MainScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit) {
                     val items = listOf(
                         Triple("dashboard", "Ana Sayfa", "\uD83C\uDFE0"),
                         Triple("tasks", "Görevler", "\uD83D\uDCCB"),
-                        Triple("invoices", "Faturalar", "\uD83E\uDDFE"),
                         Triple("shopping", "Alışveriş", "\uD83D\uDED2"),
                         Triple("messages", "Mesajlar", "\uD83D\uDCAC"),
+                        Triple("profile", "Profil", "\uD83D\uDC64"),
                     )
-                    val navBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = navBackStackEntry?.destination?.route
-                    items.forEach { (route, label, icon) ->
+                    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+                    items.forEach { (route, title, icon) ->
                         NavigationBarItem(
-                            icon = { Text(icon, style = MaterialTheme.typography.titleLarge) },
-                            label = { Text(label, style = MaterialTheme.typography.labelSmall) },
                             selected = currentRoute == route,
                             onClick = {
-                                if (currentRoute != route) {
-                                    navController.navigate(route) {
-                                        popUpTo("dashboard") { saveState = true }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                if (currentRoute != route) navController.navigate(route) {
+                                    popUpTo(navController.graph.startDestinationId) { saveState = true }
+                                    launchSingleTop = true; restoreState = true
                                 }
-                            }
+                            },
+                            icon = { Text(icon) },
+                            label = { Text(title, style = MaterialTheme.typography.labelSmall) }
                         )
                     }
                 }
             }
         ) { padding ->
-            NavHost(navController, startDestination = "dashboard", modifier = Modifier.padding(padding)) {
+            NavHost(navController, startDestination = "dashboard", Modifier.padding(padding)) {
                 composable("dashboard") { DashboardScreen(navController, vm) }
                 composable("tasks") { TasksScreen(vm) }
-                composable("inventory") { InventoryScreen(vm) }
-                composable("budget") { BudgetScreen(vm) }
-                composable("invoices") { InvoiceScreen(vm) }
+                composable("shopping") { ShoppingScreen(vm = vm, navController = navController) }
                 composable("messages") { MessagesScreen(vm) }
-                composable("shopping") { ShoppingScreen(vm, navController) }
-                composable("calendar") { CalendarScreen() }
-                composable("profile") { ProfileScreen(darkMode, onToggleDark, vm) }
-                composable("meal-plan") { MealPlanScreen(vm) }
-                composable("gamification") { GamificationScreen(vm) }
-                composable("mental-load") { MentalLoadScreen(vm) }
+                composable("profile") { ProfileScreen(vm) }
                 composable("notes") { NotesScreen(vm) }
                 composable("reminders") { ReminderScreen(vm) }
                 composable("health") { HealthDashboardScreen(vm) }
-                // Yeni modüller
+                composable("budget") { BudgetScreen(vm) }
+                composable("inventory") { InventoryScreen(vm) }
+                composable("calendar") { CalendarScreen() }
+                composable("calorie") { CalorieScreen(vm) }
                 composable("sports") { SportsClubScreen(vm) }
-                composable("calories") { CalorieScreen(vm) }
-                composable("menstrual") { MenstrualCycleScreen(vm) }
-                composable("sync-settings") { SyncSettingsScreen(vm, navController) }
-                // QR/Barkod Tarayıcı
+                composable("invoices") { InvoiceScreen(vm) }
+                composable("mealplan") { MealPlanScreen(vm) }
+                composable("gamification") { GamificationScreen(vm) }
+                composable("mental") { MentalLoadScreen(vm) }
+                composable("sync") { SyncSettingsScreen(vm, navController) }
                 composable("scanner/{mode}") { backStackEntry ->
                     val mode = backStackEntry.arguments?.getString("mode") ?: "any"
-                    val scanMode = when (mode) {
-                        "barcode" -> ScanMode.BARCODE
-                        "qr" -> ScanMode.QR_CODE
-                        else -> ScanMode.ANY
-                    }
                     BarcodeScannerScreen(
-                        scanMode = scanMode,
+                        scanMode = when (mode) {
+                            "barcode" -> ScanMode.BARCODE
+                            "qr" -> ScanMode.QR_CODE
+                            else -> ScanMode.ANY
+                        },
                         onResult = { result ->
-                            // Store result and pop back
                             vm.lastScanResult.value = result.rawValue
                             navController.previousBackStackEntry?.savedStateHandle?.set("scan_result", result.rawValue)
                             navController.popBackStack()

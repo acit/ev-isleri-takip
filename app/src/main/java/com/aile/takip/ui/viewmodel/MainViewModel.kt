@@ -47,6 +47,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val auth = repo.auth.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
     var isAuthenticated = mutableStateOf(false)
     var selectedMemberId = mutableStateOf<String?>(null)
+    
+    // Theme preferences
+    var useDynamicColor = mutableStateOf(true)
+    var isDarkMode = mutableStateOf(false)
+    var useSystemTheme = mutableStateOf(true)
 
     // Barcode/QR scan result
     val lastScanResult = mutableStateOf<String?>(null)
@@ -117,6 +122,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repo.upsertAuth(UserAuth(id = "main_user", pin = "", name = "", email = "")); isAuthenticated.value = true }
     }
     fun logout() { isAuthenticated.value = false }
+
+    // ===== THEME PREFERENCES =====
+    fun setDynamicColor(enabled: Boolean) {
+        useDynamicColor.value = enabled
+    }
+
+    fun setDarkMode(enabled: Boolean) {
+        isDarkMode.value = enabled
+        useSystemTheme.value = false
+    }
+
+    fun useSystemTheme() {
+        useSystemTheme.value = true
+    }
 
     // ===== TASKS =====
     fun addTask(title: String, description: String = "", category: String = "Genel", priority: String = "orta", assignee: String = "", dueDate: String = "") {

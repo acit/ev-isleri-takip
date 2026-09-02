@@ -22,3 +22,9 @@ val DarkElevated = Color(0xFF21262D)
 val DarkBorder = Color(0xFF30363D)
 val DarkText = Color(0xFFE6EDF3)
 val DarkTextSec = Color(0xFF8B949E)
+
+// Additional semantic colors
+val Success = Color(0xFF2ECC71)
+val Warning = Color(0xFFF39C12)
+val Info = Color(0xFF3498DB)
+val Danger = Color(0xFFE74C3C)

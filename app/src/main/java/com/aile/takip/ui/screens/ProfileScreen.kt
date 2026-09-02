@@ -15,12 +15,17 @@ import com.aile.takip.ui.components.PageScaffold
 import com.aile.takip.ui.viewmodel.MainViewModel
 
 @Composable
-fun ProfileScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit, vm: MainViewModel) {
+fun ProfileScreen(vm: MainViewModel) {
     val members by vm.members.collectAsState()
     val tasks by vm.tasks.collectAsState()
     val inventory by vm.inventory.collectAsState()
     val invoices by vm.invoices.collectAsState()
     val shopping by vm.shoppingItems.collectAsState()
+    
+    // Theme preferences
+    val useDynamicColor by vm.useDynamicColor
+    val isDarkMode by vm.isDarkMode
+    val useSystemTheme by vm.useSystemTheme
 
     Column(modifier = Modifier.padding(16.dp).verticalScroll(rememberScrollState())) {
         Text("\u2699\uFE0F Profil", style = MaterialTheme.typography.headlineMedium)
@@ -35,7 +40,7 @@ fun ProfileScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit, vm: MainVi
                 Spacer(Modifier.width(16.dp))
                 Column {
                     Text("Aile Takip", fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Text("v3.0.0 \u00B7 Tüm modüller aktif", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("v3.3.1 \u00B7 Tum moduller aktif", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
         }
@@ -44,12 +49,12 @@ fun ProfileScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit, vm: MainVi
         // Stats
         Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("\uD83D\uDCCA İstatistikler", fontWeight = FontWeight.Medium)
+                Text("\uD83D\uDCCA Istatistikler", fontWeight = FontWeight.Medium)
                 Spacer(Modifier.height(8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("${tasks.size}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, fontSize = 18.sp)
-                        Text("Görev", style = MaterialTheme.typography.labelSmall)
+                        Text("Gorev", style = MaterialTheme.typography.labelSmall)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("${inventory.size}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.secondary, fontSize = 18.sp)
@@ -66,22 +71,58 @@ fun ProfileScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit, vm: MainVi
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
 
+        // Appearance Settings
+        Text("Gorunum Ayarlari", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(8.dp))
+        
+        // Dynamic Color toggle (Material You)
+        Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+            Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("\uD83C\uDFA8 Material You Renkleri", fontWeight = FontWeight.Medium)
+                    Text("Duvar kagidinizdan renk alir (Android 12+)", 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = useDynamicColor, onCheckedChange = { vm.setDynamicColor(it) })
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        
         // Dark mode toggle
         Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
             Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("\uD83C\uDF19 Karanlık Mod", modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
-                Switch(checked = darkMode, onCheckedChange = onToggleDark)
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("\uD83C\uDF19 Karanlik Mod", fontWeight = FontWeight.Medium)
+                    Text("Sistem ayarini mi kullanacaksiniz?", 
+                        style = MaterialTheme.typography.bodySmall, 
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(checked = useSystemTheme, onCheckedChange = { 
+                    if (it) vm.useSystemTheme()
+                })
             }
         }
-        Spacer(Modifier.height(12.dp))
+        
+        if (!useSystemTheme) {
+            Spacer(Modifier.height(8.dp))
+            Card(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
+                Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(if (isDarkMode) "\uD83C\uDF19 Karanlik" else "\u2600\uFE0F Aydinlik", modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                    Switch(checked = isDarkMode, onCheckedChange = { vm.setDarkMode(it) })
+                }
+            }
+        }
+        
+        Spacer(Modifier.height(16.dp))
 
         // Family members
         if (members.isNotEmpty()) {
             Card(shape = RoundedCornerShape(10.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("\uD83D\uDC65 Aile Üyeleri (${members.size})", fontWeight = FontWeight.Medium)
+                    Text("\uD83D\uDC65 Aile Uyeleri (${members.size})", fontWeight = FontWeight.Medium)
                     Spacer(Modifier.height(8.dp))
                     members.forEach { m ->
                         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -98,10 +139,13 @@ fun ProfileScreen(darkMode: Boolean, onToggleDark: (Boolean) -> Unit, vm: MainVi
         Spacer(Modifier.height(12.dp))
 
         // Logout button
-        Button(onClick = { vm.logout() }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-            Text("\uD83D\uDEAA Çıkış Yap")
+        Button(
+            onClick = { vm.logout() },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+        ) {
+            Text("Cikis Yap")
         }
-
-        Spacer(Modifier.height(24.dp))
     }
 }
