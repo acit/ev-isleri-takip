@@ -1,8 +1,8 @@
 {
   "project_info": {
-    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_number": "000000000000",
     "project_id": "aile-takip-app",
-    "storage_bucket": "aile-takip-app.appspot.com"
+    "storage_bucket": "aile-takip-app.firebasestorage.app"
   },
   "client": [
     {
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "YOUR_API_KEY"
+          "current_key": "AIzaSyDummyKeyForDevelopment000"
         }
       ],
       "services": {

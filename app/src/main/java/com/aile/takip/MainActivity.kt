@@ -102,9 +102,15 @@ fun MainScreen(vm: MainViewModel) {
                 composable("sports") { SportsClubScreen(vm) }
                 composable("invoices") { InvoiceScreen(vm) }
                 composable("mealplan") { MealPlanScreen(vm) }
+                composable("meal-plan") { MealPlanScreen(vm) }
                 composable("gamification") { GamificationScreen(vm) }
                 composable("mental") { MentalLoadScreen(vm) }
+                composable("mental-load") { MentalLoadScreen(vm) }
+                composable("calorie") { CalorieScreen(vm) }
+                composable("calories") { CalorieScreen(vm) }
+                composable("menstrual") { MenstrualCycleScreen(vm) }
                 composable("sync") { SyncSettingsScreen(vm, navController) }
+                composable("sync-settings") { SyncSettingsScreen(vm, navController) }
                 composable("scanner/{mode}") { backStackEntry ->
                     val mode = backStackEntry.arguments?.getString("mode") ?: "any"
                     BarcodeScannerScreen(
