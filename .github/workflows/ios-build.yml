@@ -8,6 +8,10 @@ on:
       - '.github/workflows/ios-build.yml'
   workflow_dispatch:
 
+concurrency:
+  group: ios-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-15
@@ -69,9 +73,17 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
 
+      - name: Get iOS version
+        id: ios_version
+        run: |
+          VERSION=$(grep 'MARKETING_VERSION' ios/AileTakip.xcodeproj/project.pbxproj | head -1 | sed 's/.*= \(.*\);.*/\1/' | tr -d ' ')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📱 iOS Version: $VERSION"
+
       - name: Export IPA
         run: |
           cd ios
+          VERSION=${{ steps.ios_version.outputs.version }}
           echo "=== Finding AileTakip.app ==="
           APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
@@ -92,24 +104,24 @@ jobs:
           
           # Create IPA (zip)
           cd build/IPA
-          zip -r ../../AileTakip-v3.3.0.ipa Payload/
+          zip -r ../../AileTakip-v${VERSION}.ipa Payload/
           cd ../..
           
           echo "=== IPA Created ==="
-          ls -lh AileTakip-v3.3.0.ipa
+          ls -lh AileTakip-v${VERSION}.ipa
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
-          name: AileTakip-iOS-v3.3.0
-          path: ios/AileTakip-v3.3.0.ipa
+          name: ios-ipa
+          path: ios/AileTakip-v${{ steps.ios_version.outputs.version }}.ipa
           retention-days: 30
 
       - name: Create GitHub Release (on tag)
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: ios/AileTakip-v3.3.0.ipa
+          files: ios/AileTakip-v${{ steps.ios_version.outputs.version }}.ipa
           generate_release_notes: true
           draft: false
           prerelease: false
@@ -124,12 +136,12 @@ jobs:
       - name: Download IPA artifact
         uses: actions/download-artifact@v4
         with:
-          name: AileTakip-iOS-v3.3.0
+          name: ios-ipa
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: AileTakip-v3.3.0.ipa
+          files: AileTakip-v*.ipa
           generate_release_notes: true
           draft: false
         env:

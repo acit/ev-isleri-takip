@@ -14,6 +14,10 @@ permissions:
   contents: write
   packages: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # ============================================
   # ANDROID BUILD
@@ -277,10 +281,24 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
+      - name: Decode Keystore from Secret
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > aile-takip-release.jks
+          echo "Keystore decoded successfully"
+          echo "HAS_KEYSTORE=true" >> $GITHUB_ENV
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+
       - name: Build APKs
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease assembleDebug --no-daemon
+        env:
+          RELEASE_STORE_FILE: aile-takip-release.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          RELEASE_KEY_ALIAS: aile-takip
+          RELEASE_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Get version
         id: version
