@@ -11,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
 import com.aile.takip.sync.FirebaseSyncService
+import com.aile.takip.sync.SyncCoordinator
 import com.aile.takip.utils.BitmapCache
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -38,6 +39,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     val syncedTables = syncService.syncedTables
     val syncEnabled = mutableStateOf(false)
     val familyGroupId = mutableStateOf("")
+
+    // Cross-feature sync coordinator
+    private val coordinator = SyncCoordinator(repo)
 
     // Auth state
     val auth = repo.auth.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -115,14 +119,20 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     // ===== TASKS =====
     fun addTask(title: String, description: String = "", category: String = "Genel", priority: String = "orta", assignee: String = "", dueDate: String = "") {
         viewModelScope.launch {
-            repo.upsertTask(Task(title = title, description = description, category = category, priority = priority, assignee = assignee, dueDate = dueDate))
+            val task = Task(title = title, description = description, category = category, priority = priority, assignee = assignee, dueDate = dueDate)
+            repo.upsertTask(task)
+            coordinator.onTaskCreated(task)
             addSyncEvent("tasks", "insert")
         }
     }
     fun toggleTask(task: Task) {
         viewModelScope.launch {
             val newStatus = if (task.status == "tamamlanan") "bekleyen" else "tamamlanan"
-            repo.upsertTask(task.copy(status = newStatus, completedAt = if (newStatus == "tamamlanan") System.currentTimeMillis() else null))
+            val updatedTask = task.copy(status = newStatus, completedAt = if (newStatus == "tamamlanan") System.currentTimeMillis() else null)
+            repo.upsertTask(updatedTask)
+            if (newStatus == "tamamlanan") {
+                coordinator.onTaskCompleted(updatedTask)
+            }
             addSyncEvent("tasks", "update")
         }
     }
@@ -143,13 +153,30 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ===== EXPENSES =====
     fun addExpense(category: String, amount: Double, description: String = "", date: String, budgetId: String = "") {
-        viewModelScope.launch { repo.upsertExpense(Expense(category = category, amount = amount, description = description, expenseDate = date, budgetId = budgetId)); addSyncEvent("expenses", "insert") }
+        viewModelScope.launch {
+            val expense = Expense(category = category, amount = amount, description = description, expenseDate = date, budgetId = budgetId)
+            repo.upsertExpense(expense)
+            coordinator.onExpenseRecorded(expense)
+            addSyncEvent("expenses", "insert")
+        }
     }
     fun deleteExpense(e: Expense) { viewModelScope.launch { repo.deleteExpense(e) } }
 
+    // ===== COORDINATOR HELPERS =====
+    suspend fun getLowStockSuggestions() = coordinator.getLowStockSuggestions()
+    suspend fun autoAddLowStockToShopping() = coordinator.autoAddLowStockToShopping()
+    suspend fun getDailyCalorieSummary(memberId: String) = coordinator.getDailyCalorieSummary(memberId)
+    suspend fun getWeeklyCalorieTrend(memberId: String) = coordinator.getWeeklyCalorieTrend(memberId)
+    suspend fun getCalorieGoalStatus(memberId: String) = coordinator.getCalorieGoalStatus(memberId)
+
     // ===== INVOICES =====
     fun addInvoice(title: String, amount: Double, category: String = "Genel", dueDate: String = "", notes: String = "", imageBase64: String? = null) {
-        viewModelScope.launch { repo.upsertInvoice(Invoice(title = title, amount = amount, category = category, dueDate = dueDate, notes = notes, imageBase64 = imageBase64)); addSyncEvent("invoices", "insert") }
+        viewModelScope.launch {
+            val invoice = Invoice(title = title, amount = amount, category = category, dueDate = dueDate, notes = notes, imageBase64 = imageBase64)
+            repo.upsertInvoice(invoice)
+            coordinator.onInvoiceCreated(invoice)
+            addSyncEvent("invoices", "insert")
+        }
     }
     fun toggleInvoiceStatus(invoice: Invoice) {
         viewModelScope.launch {
@@ -170,7 +197,14 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { repo.upsertShopping(ShoppingItem(name = name, quantity = quantity, category = category, addedBy = addedBy)); addSyncEvent("shopping", "insert") }
     }
     fun toggleShoppingItem(item: ShoppingItem) {
-        viewModelScope.launch { repo.upsertShopping(item.copy(checked = !item.checked)); addSyncEvent("shopping", "update") }
+        viewModelScope.launch {
+            val newChecked = !item.checked
+            repo.upsertShopping(item.copy(checked = newChecked));
+            if (newChecked) {
+                coordinator.onShoppingItemBought(item)
+            }
+            addSyncEvent("shopping", "update")
+        }
     }
     fun deleteShopping(item: ShoppingItem) { viewModelScope.launch { repo.deleteShopping(item); addSyncEvent("shopping", "delete") } }
 
@@ -185,7 +219,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ===== MEAL PLANS =====
     fun addMealPlan(dayOfWeek: Int, mealType: String, dish: String, notes: String = "") {
-        viewModelScope.launch { repo.upsertMealPlan(MealPlan(dayOfWeek = dayOfWeek, mealType = mealType, dish = dish, notes = notes)); addSyncEvent("meal_plans", "insert") }
+        viewModelScope.launch {
+            val mealPlan = MealPlan(dayOfWeek = dayOfWeek, mealType = mealType, dish = dish, notes = notes)
+            repo.upsertMealPlan(mealPlan)
+            coordinator.onMealPlanCreated(mealPlan)
+            addSyncEvent("meal_plans", "insert")
+        }
     }
     fun deleteMealPlan(mp: MealPlan) { viewModelScope.launch { repo.deleteMealPlan(mp); addSyncEvent("meal_plans", "delete") } }
 
