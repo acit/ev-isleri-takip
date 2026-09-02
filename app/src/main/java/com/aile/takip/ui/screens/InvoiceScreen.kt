@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.aile.takip.data.model.Invoice
 import com.aile.takip.ui.components.*
 import com.aile.takip.ui.viewmodel.MainViewModel
 
@@ -21,6 +23,7 @@ import com.aile.takip.ui.viewmodel.MainViewModel
 fun InvoiceScreen(vm: MainViewModel) {
     val invoices by vm.invoices.collectAsState()
     var showDialog by remember { mutableStateOf(false) }
+    var editingInvoice by remember { mutableStateOf<Invoice?>(null) }
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Genel") }
@@ -30,18 +33,24 @@ fun InvoiceScreen(vm: MainViewModel) {
     val totalPaid = invoices.filter { it.status == "paid" }.sumOf { it.amount }
 
     PageScaffold("\uD83E\uDDFE", "\uD83E\uDDFE") {
+        // Stats cards
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             StatCard("\uD83D\uDCC9", "\u20BA${totalPending.toInt()}", "Bekleyen", Color(0xFFF39C12))
             StatCard("\u2705", "\u20BA${totalPaid.toInt()}", "Ödenen", Color(0xFF2ECC71))
         }
+        
         Spacer(Modifier.height(8.dp))
+        
+        // Add button
         Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
             Icon(Icons.Default.Add, null)
             Spacer(Modifier.width(8.dp))
             Text("Fatura Ekle")
         }
+        
         Spacer(Modifier.height(12.dp))
 
+        // Empty state
         if (invoices.isEmpty()) {
             Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
                 Column(modifier = Modifier.padding(24.dp).fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -52,6 +61,7 @@ fun InvoiceScreen(vm: MainViewModel) {
             }
         }
 
+        // Invoice list
         LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             items(invoices, key = { it.id }) { invoice ->
                 val isPaid = invoice.status == "paid"
@@ -65,8 +75,20 @@ fun InvoiceScreen(vm: MainViewModel) {
                         }
                         Column(horizontalAlignment = Alignment.End) {
                             Text("\u20BA${invoice.amount.toInt()}", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                            IconButton(onClick = { vm.deleteInvoice(invoice) }) {
-                                Icon(Icons.Default.Delete, "Sil", tint = MaterialTheme.colorScheme.error)
+                            Row {
+                                IconButton(onClick = { 
+                                    editingInvoice = invoice
+                                    title = invoice.title
+                                    amount = invoice.amount.toString()
+                                    category = invoice.category
+                                    dueDate = invoice.dueDate
+                                    showDialog = true 
+                                }) {
+                                    Icon(Icons.Default.Edit, "Düzenle", tint = MaterialTheme.colorScheme.primary)
+                                }
+                                IconButton(onClick = { vm.deleteInvoice(invoice) }) {
+                                    Icon(Icons.Default.Delete, "Sil", tint = MaterialTheme.colorScheme.error)
+                                }
                             }
                         }
                     }
@@ -74,10 +96,18 @@ fun InvoiceScreen(vm: MainViewModel) {
             }
         }
 
+        // Add/Edit Invoice Dialog
         if (showDialog) {
             AlertDialog(
-                onDismissRequest = { showDialog = false },
-                title = { Text("Fatura Ekle") },
+                onDismissRequest = { 
+                    showDialog = false
+                    editingInvoice = null
+                    title = ""
+                    amount = ""
+                    category = "Genel"
+                    dueDate = ""
+                },
+                title = { Text(if (editingInvoice != null) "Fatura Düzenle" else "Fatura Ekle") },
                 text = {
                     Column {
                         OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Başlık") }, singleLine = true)
@@ -92,10 +122,32 @@ fun InvoiceScreen(vm: MainViewModel) {
                 confirmButton = { TextButton(onClick = {
                     val amt = amount.toDoubleOrNull()
                     if (title.isNotBlank() && amt != null) {
-                        vm.addInvoice(title, amt, category, dueDate); title = ""; amount = ""; category = "Genel"; dueDate = ""; showDialog = false
+                        if (editingInvoice != null) {
+                            vm.updateInvoice(editingInvoice!!.copy(
+                                title = title,
+                                amount = amt,
+                                category = category,
+                                dueDate = dueDate
+                            ))
+                        } else {
+                            vm.addInvoice(title, amt, category, dueDate)
+                        }
+                        title = ""
+                        amount = ""
+                        category = "Genel"
+                        dueDate = ""
+                        editingInvoice = null
+                        showDialog = false
                     }
-                }) { Text("Ekle") } },
-                dismissButton = { TextButton(onClick = { showDialog = false }) { Text("İptal") } }
+                }) { Text(if (editingInvoice != null) "Kaydet" else "Ekle") } },
+                dismissButton = { TextButton(onClick = { 
+                    showDialog = false
+                    editingInvoice = null
+                    title = ""
+                    amount = ""
+                    category = "Genel"
+                    dueDate = ""
+                }) { Text("İptal") } }
             )
         }
     }

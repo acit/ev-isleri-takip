@@ -136,6 +136,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             addSyncEvent("tasks", "update")
         }
     }
+    fun updateTask(task: Task) {
+        viewModelScope.launch {
+            repo.upsertTask(task)
+            addSyncEvent("tasks", "update")
+        }
+    }
     fun deleteTask(task: Task) { viewModelScope.launch { repo.deleteTask(task); addSyncEvent("tasks", "delete") } }
 
     // ===== INVENTORY =====
@@ -149,6 +155,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun addBudget(category: String, limit: Double, monthYear: String) {
         viewModelScope.launch { repo.upsertBudget(Budget(category = category, monthlyLimit = limit, monthYear = monthYear)); addSyncEvent("budgets", "insert") }
     }
+    fun updateBudget(budget: Budget) {
+        viewModelScope.launch {
+            repo.upsertBudget(budget)
+            addSyncEvent("budgets", "update")
+        }
+    }
     fun deleteBudget(b: Budget) { viewModelScope.launch { repo.deleteBudget(b); addSyncEvent("budgets", "delete") } }
 
     // ===== EXPENSES =====
@@ -158,6 +170,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             repo.upsertExpense(expense)
             coordinator.onExpenseRecorded(expense)
             addSyncEvent("expenses", "insert")
+        }
+    }
+    fun updateExpense(expense: Expense) {
+        viewModelScope.launch {
+            repo.upsertExpense(expense)
+            addSyncEvent("expenses", "update")
         }
     }
     fun deleteExpense(e: Expense) { viewModelScope.launch { repo.deleteExpense(e) } }
@@ -184,6 +202,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             repo.upsertInvoice(invoice.copy(status = newStatus)); addSyncEvent("invoices", "update")
         }
     }
+    fun updateInvoice(invoice: Invoice) {
+        viewModelScope.launch {
+            repo.upsertInvoice(invoice)
+            addSyncEvent("invoices", "update")
+        }
+    }
     fun deleteInvoice(i: Invoice) { viewModelScope.launch { repo.deleteInvoice(i); addSyncEvent("invoices", "delete") } }
 
     // ===== MESSAGES =====
@@ -203,6 +227,12 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (newChecked) {
                 coordinator.onShoppingItemBought(item)
             }
+            addSyncEvent("shopping", "update")
+        }
+    }
+    fun updateShoppingItem(item: ShoppingItem) {
+        viewModelScope.launch {
+            repo.upsertShopping(item)
             addSyncEvent("shopping", "update")
         }
     }
