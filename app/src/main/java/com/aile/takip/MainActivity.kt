@@ -23,10 +23,18 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         // Apply saved locale
-        com.aile.takip.utils.LocaleHelper.onAttach(this)
+        try {
+            com.aile.takip.utils.LocaleHelper.onAttach(this)
+        } catch (e: Exception) {
+            // Locale failed, continue with default
+        }
 
         // Schedule reminder check worker
-        ReminderWorker.schedulePeriodicCheck(this)
+        try {
+            ReminderWorker.schedulePeriodicCheck(this)
+        } catch (e: Exception) {
+            // Worker scheduling failed, continue without it
+        }
 
         setContent {
             val vm: MainViewModel = viewModel()
@@ -106,7 +114,6 @@ fun MainScreen(vm: MainViewModel) {
                 composable("gamification") { GamificationScreen(vm) }
                 composable("mental") { MentalLoadScreen(vm) }
                 composable("mental-load") { MentalLoadScreen(vm) }
-                composable("calorie") { CalorieScreen(vm) }
                 composable("calories") { CalorieScreen(vm) }
                 composable("menstrual") { MenstrualCycleScreen(vm) }
                 composable("sync") { SyncSettingsScreen(vm, navController) }

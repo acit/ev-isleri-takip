@@ -118,7 +118,7 @@ class ReminderWorker(
             "weekly" -> {
                 if (reminder.repeatDays.isNotEmpty()) {
                     // Custom days: find next matching day
-                    val days = reminder.repeatDays.split(",").map { it.toInt() }
+                    val days = reminder.repeatDays.split(",").mapNotNull { it.trim().toIntOrNull() }.ifEmpty { return 0 }
                     val currentDay = calendar.get(Calendar.DAY_OF_WEEK)
                     val nextDay = days.firstOrNull { it > currentDay } ?: days.min()
                     val daysToAdd = if (nextDay > currentDay) {
@@ -136,7 +136,7 @@ class ReminderWorker(
             }
             "custom" -> {
                 if (reminder.repeatDays.isNotEmpty()) {
-                    val days = reminder.repeatDays.split(",").map { it.toInt() }
+                    val days = reminder.repeatDays.split(",").mapNotNull { it.trim().toIntOrNull() }.ifEmpty { return 0 }
                     val currentDay = calendar.get(Calendar.DAY_OF_WEEK)
                     val nextDay = days.firstOrNull { it > currentDay } ?: days.min()
                     val daysToAdd = if (nextDay > currentDay) {

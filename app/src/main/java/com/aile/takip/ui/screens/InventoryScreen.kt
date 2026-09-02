@@ -483,18 +483,20 @@ fun InventoryScreen(vm: MainViewModel) {
                             Text("🏪 Market Karşılaştırması", fontWeight = FontWeight.Medium)
                             Spacer(Modifier.height(8.dp))
                             
-                            val storePrices = priceHistory.groupBy { it.store.ifEmpty { "Bilinmiyor" } }
-                                .mapValues { (_, records) -> records.map { it.price }.average() }
-                                .toList()
-                                .sortedBy { it.second }
-                            
+                            val storePrices = try {
+                                priceHistory.groupBy { it.store.ifEmpty { "Bilinmiyor" } }
+                                    .mapValues { (_, records) -> records.map { it.price }.average() }
+                                    .toList()
+                                    .sortedBy { it.second }
+                            } catch (e: Exception) { emptyList() }
+                            val lowestPrice = storePrices.firstOrNull()?.second ?: 0.0
                             storePrices.forEach { (store, avgPrice) ->
                                 Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp), 
                                     horizontalArrangement = Arrangement.SpaceBetween) {
                                     Text(store, style = MaterialTheme.typography.bodySmall)
                                     Text("\u20BA${avgPrice.toInt()} (ort.)", 
                                         fontWeight = FontWeight.Medium,
-                                        color = if (avgPrice == storePrices.first().second) Color(0xFF2ECC71) else MaterialTheme.colorScheme.onSurface)
+                                        color = if (avgPrice == lowestPrice) Color(0xFF2ECC71) else MaterialTheme.colorScheme.onSurface)
                                 }
                             }
                         }

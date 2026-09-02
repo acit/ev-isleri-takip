@@ -101,10 +101,19 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     init {
         // Seed sample data on first run, then check PIN
         viewModelScope.launch {
-            com.aile.takip.data.seeder.SampleDataSeeder.seedIfNeeded(db)
-            val a = repo.getAuthOnce()
-            if (a == null || a.pin.isEmpty()) {
-                isAuthenticated.value = true // No PIN set = auto-login
+            try {
+                com.aile.takip.data.seeder.SampleDataSeeder.seedIfNeeded(db)
+            } catch (e: Exception) {
+                // Seeding failed, app continues with empty database
+            }
+            try {
+                val a = repo.getAuthOnce()
+                if (a == null || a.pin.isEmpty()) {
+                    isAuthenticated.value = true // No PIN set = auto-login
+                }
+            } catch (e: Exception) {
+                // Auth check failed, auto-login
+                isAuthenticated.value = true
             }
         }
     }
