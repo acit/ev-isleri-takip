@@ -59,28 +59,14 @@ jobs:
             -derivedDataPath build/DerivedData \
             test | xcpretty || true
 
-      - name: Build for Device (Release) — No Code Sign
-        run: |
-          cd ios
-          xcodebuild \
-            -project AileTakip.xcodeproj \
-            -scheme AileTakip \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
-
       - name: Get iOS version
         id: ios_version
         run: |
           VERSION=$(grep 'MARKETING_VERSION' ios/AileTakip.xcodeproj/project.pbxproj | head -1 | sed 's/.*= \(.*\);.*/\1/' | tr -d ' ')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "📱 iOS Version: $VERSION"
+          echo "iOS Version: $VERSION"
 
-      - name: Archive for IPA
+      - name: Build & Archive for IPA
         run: |
           cd ios
           echo "=== Archiving AileTakip ==="
@@ -94,67 +80,45 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
+          
+          echo "=== Archive created ==="
+          ls -la build/AileTakip.xcarchive/Products/ 2>/dev/null || echo "Products dir check"
 
-      - name: Export IPA
+      - name: Package IPA from Archive
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
-          
-          echo "=== Creating ExportOptions.plist ==="
-          cat > build/ExportOptions.plist << 'PLIST'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>method</key>
-              <string>ad-hoc</string>
-              <key>stripSwiftSymbols</key>
-              <true/>
-              <key>compileBitcode</key>
-              <false/>
-              <key>signingStyle</key>
-              <string>manual</string>
-          </dict>
-          </plist>
-          PLIST
-          
-          echo "=== Exporting IPA ==="
-          xcodebuild -exportArchive \
-            -archivePath build/AileTakip.xcarchive \
-            -exportOptionsPlist build/ExportOptions.plist \
-            -exportPath build/ipa \
-            || echo "Export with manual signing failed, creating IPA manually..."
-          
-          # Fallback: manually create IPA from .app in archive
-          IPA_FILE=$(find build/ipa -name "*.ipa" 2>/dev/null | head -1)
-          
-          if [ -z "$IPA_FILE" ]; then
-            echo "=== Fallback: manual IPA from archive ==="
-            APP_PATH=$(find build/AileTakip.xcarchive/Products -name "AileTakip.app" -type d 2>/dev/null | head -1)
-            
-            if [ -z "$APP_PATH" ]; then
-              echo "ERROR: AileTakip.app not found in archive"
-              find build/AileTakip.xcarchive -name "*.app" -type d 2>/dev/null || echo "No .app found anywhere"
-              exit 1
-            fi
-            
-            echo "Found app: $APP_PATH"
-            mkdir -p build/IPA/Payload
-            cp -r "$APP_PATH" build/IPA/Payload/
-            cd build/IPA
-            zip -r ../../AileTakip-v${VERSION}.ipa Payload/
-            cd ../..
-            IPA_FILE="AileTakip-v${VERSION}.ipa"
-          fi
-          
-          # Rename to correct version
           FINAL_NAME="AileTakip-v${VERSION}.ipa"
-          if [ -f "$IPA_FILE" ] && [ "$(basename $IPA_FILE)" != "$FINAL_NAME" ]; then
-            mv "$IPA_FILE" "$FINAL_NAME"
+          
+          echo "=== Searching for AileTakip.app in archive ==="
+          APP_PATH=$(find build/AileTakip.xcarchive -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: AileTakip.app not found in archive"
+            echo "Archive structure:"
+            find build/AileTakip.xcarchive -maxdepth 4 -type d 2>/dev/null || echo "No dirs found"
+            echo "Searching for any .app:"
+            find build/AileTakip.xcarchive -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            exit 1
           fi
+          
+          echo "Found app: $APP_PATH"
+          echo "App size: $(du -sh "$APP_PATH" | cut -f1)"
+          
+          # Create IPA structure
+          mkdir -p build/IPA/Payload
+          cp -r "$APP_PATH" build/IPA/Payload/
+          
+          # Create IPA (zip)
+          cd build/IPA
+          zip -r ../../$FINAL_NAME Payload/
+          cd ../..
           
           echo "=== IPA Created ==="
           ls -lh $FINAL_NAME
+          
+          # Note: This IPA is unsigned. Users need AltStore/Sideloadly to install.
+          echo "Note: This IPA is unsigned. Use AltStore or Sideloadly to install on device."
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
