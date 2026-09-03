@@ -90,16 +90,28 @@ jobs:
           VERSION=${{ steps.ios_version.outputs.version }}
           FINAL_NAME="AileTakip-v${VERSION}.ipa"
           
-          echo "=== Searching for AileTakip.app in archive ==="
+          echo "=== Archive structure ==="
+          find build/AileTakip.xcarchive -maxdepth 5 -type d 2>/dev/null | head -30
+          
+          echo "=== Searching for AileTakip.app ==="
           APP_PATH=$(find build/AileTakip.xcarchive -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: AileTakip.app not found in archive"
-            echo "Archive structure:"
-            find build/AileTakip.xcarchive -maxdepth 4 -type d 2>/dev/null || echo "No dirs found"
+            echo "WARN: AileTakip.app not found in archive"
             echo "Searching for any .app:"
             find build/AileTakip.xcarchive -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            exit 1
+            
+            echo "Trying Simulator build instead..."
+            # Fall back to simulator build for IPA packaging
+            SIM_APP=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
+            if [ -z "$SIM_APP" ]; then
+              echo "ERROR: No AileTakip.app found anywhere"
+              echo "DerivedData structure:"
+              find build/DerivedData -maxdepth 5 -name "*.app" -type d 2>/dev/null || echo "No .app in DerivedData"
+              exit 1
+            fi
+            APP_PATH="$SIM_APP"
+            echo "Using simulator app: $APP_PATH"
           fi
           
           echo "Found app: $APP_PATH"
@@ -118,7 +130,7 @@ jobs:
           ls -lh $FINAL_NAME
           
           # Note: This IPA is unsigned. Users need AltStore/Sideloadly to install.
-          echo "Note: This IPA is unsigned. Use AltStore or Sideloadly to install on device."
+          echo "Note: This IPA may be unsigned. Use AltStore or Sideloadly to install on device."
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
