@@ -23,13 +23,11 @@ jobs:
 
       - name: Select Xcode version
         run: |
-          # Try Xcode 18 first, fallback to latest available
           if [ -d "/Applications/Xcode_18.app" ]; then
             sudo xcode-select -s /Applications/Xcode_18.app
           elif [ -d "/Applications/Xcode_16.0.app" ]; then
             sudo xcode-select -s /Applications/Xcode_16.0.app
           else
-            # Use whatever Xcode is available
             sudo xcode-select -s /Applications/Xcode.app
           fi
           xcodebuild -version
@@ -47,13 +45,30 @@ jobs:
           key: ios-spm-${{ hashFiles('ios/AileTakip.xcodeproj/project.pbxproj') }}
           restore-keys: ios-spm-
 
+      - name: Find iOS Simulator
+        id: simulator
+        run: |
+          # Find latest available iOS simulator
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          for runtime, devices in data['devices'].items():
+              for d in devices:
+                  if d['isAvailable'] and 'iPhone' in d['name']:
+                      print(d['name'])
+                      exit()
+          print('iPhone 16')
+          ")
+          echo "device=$DEVICE" >> $GITHUB_OUTPUT
+          echo "Using simulator: $DEVICE"
+
       - name: Build for iOS Simulator (Debug)
         run: |
           cd ios
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
-            -destination 'platform=iOS Simulator,OS=latest' \
+            -destination 'platform=iOS Simulator,name=${{ steps.simulator.outputs.device }},OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             build | xcpretty
@@ -64,7 +79,7 @@ jobs:
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
-            -destination 'platform=iOS Simulator,OS=latest' \
+            -destination 'platform=iOS Simulator,name=${{ steps.simulator.outputs.device }},OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             test | xcpretty || true
@@ -76,27 +91,41 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "iOS Version: $VERSION"
 
-      - name: Package simulator .app as IPA
+      - name: Find and Package .app
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
           FINAL_NAME="AileTakip-v${VERSION}.ipa"
 
-          echo "=== Searching for AileTakip.app ==="
-          APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          echo "=== Looking for AileTakip.app ==="
 
+          # Search in all possible locations
+          APP_PATH=""
+
+          # 1. Standard DerivedData path
           if [ -z "$APP_PATH" ]; then
-            echo "WARN: AileTakip.app not found, listing all .app files:"
-            find build/DerivedData -maxdepth 6 -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            APP_PATH=$(find build/DerivedData/Build/Products -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          fi
+
+          # 2. Any .app in DerivedData
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          fi
+
+          # 3. Any .app at all
+          if [ -z "$APP_PATH" ]; then
+            APP_PATH=$(find build/DerivedData -name "*.app" -type d 2>/dev/null | head -1)
+          fi
+
+          # 4. Debug: show DerivedData structure
+          if [ -z "$APP_PATH" ]; then
             echo "=== DerivedData structure ==="
-            find build/DerivedData -maxdepth 4 -type d 2>/dev/null | head -30
-            
-            # Try alternate path - sometimes xcodebuild outputs differently
-            APP_PATH=$(find build/DerivedData/Build/Products -name "*.app" -type d 2>/dev/null | head -1)
-            if [ -z "$APP_PATH" ]; then
-              echo "ERROR: No .app found anywhere in DerivedData"
-              exit 1
-            fi
+            find build/DerivedData -maxdepth 5 -type d 2>/dev/null | head -40
+            echo "=== Searching for any output ==="
+            find build -name "*.app" -type d 2>/dev/null || echo "No .app anywhere"
+            echo "=== Build Products ==="
+            ls -la build/DerivedData/Build/Products/ 2>/dev/null || echo "No Products dir"
+            exit 1
           fi
 
           echo "Found app: $APP_PATH"
