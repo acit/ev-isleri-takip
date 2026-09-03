@@ -81,7 +81,6 @@ struct StatCard: View {
         .frame(width: 100)
         .padding()
         .background(color.opacity(0.1))
-        .glassEffect(.regular.interactive)
         .cornerRadius(12)
     }
 }

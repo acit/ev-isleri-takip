@@ -42,7 +42,6 @@ struct ContentView: View {
                 }
                 .tag(5)
         }
-        .glassEffect(.regular, in: .tabBar)
         .onAppear {
             vm.loadSampleData()
         }
