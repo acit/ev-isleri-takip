@@ -30,7 +30,7 @@ struct DashboardView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Quick Stats
+                    // Quick Stats - iOS 26 Liquid Glass
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
                             StatCard(title: "💧 Su", value: "\(vm.todayWaterMl)ml", color: .blue)
@@ -41,7 +41,7 @@ struct DashboardView: View {
                         .padding(.horizontal)
                     }
                     
-                    // Feature Grid
+                    // Feature Grid - iOS 26 Liquid Glass
                     LazyVGrid(columns: columns, spacing: 12) {
                         FeatureCard(icon: "checkmark.circle.fill", title: "Görevler", count: vm.pendingTaskCount, color: .green, route: "tasks")
                         FeatureCard(icon: "cart.fill", title: "Alışveriş", count: vm.uncheckedShoppingCount, color: .purple, route: "shopping")
@@ -62,7 +62,7 @@ struct DashboardView: View {
     }
 }
 
-// MARK: - Stat Card
+// MARK: - Stat Card - iOS 26 Liquid Glass
 struct StatCard: View {
     let title: String
     let value: String
@@ -81,11 +81,12 @@ struct StatCard: View {
         .frame(width: 100)
         .padding()
         .background(color.opacity(0.1))
+        .glassEffect(.regular.interactive)
         .cornerRadius(12)
     }
 }
 
-// MARK: - Feature Card
+// MARK: - Feature Card - iOS 26 Liquid Glass
 struct FeatureCard: View {
     let icon: String
     let title: String
@@ -116,8 +117,8 @@ struct FeatureCard: View {
         }
         .padding()
         .background(Color(.systemBackground))
+        .glassEffect(.regular)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 5, y: 2)
     }
 }
 
