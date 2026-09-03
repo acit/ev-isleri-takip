@@ -80,35 +80,81 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "📱 iOS Version: $VERSION"
 
+      - name: Archive for IPA
+        run: |
+          cd ios
+          echo "=== Archiving AileTakip ==="
+          xcodebuild \
+            -project AileTakip.xcodeproj \
+            -scheme AileTakip \
+            -archivePath build/AileTakip.xcarchive \
+            -destination "generic/platform=iOS" \
+            -configuration Release \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcpretty
+
       - name: Export IPA
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
-          echo "=== Finding AileTakip.app ==="
-          APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
-          if [ -z "$APP_PATH" ]; then
-            echo "ERROR: AileTakip.app not found in build/DerivedData"
-            echo "=== Listing .app directories ==="
-            find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            echo "=== Listing build directory structure ==="
-            find build -maxdepth 4 -type d 2>/dev/null || echo "No build dir"
-            exit 1
+          echo "=== Creating ExportOptions.plist ==="
+          cat > build/ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>ad-hoc</string>
+              <key>stripSwiftSymbols</key>
+              <true/>
+              <key>compileBitcode</key>
+              <false/>
+              <key>signingStyle</key>
+              <string>manual</string>
+          </dict>
+          </plist>
+          PLIST
+          
+          echo "=== Exporting IPA ==="
+          xcodebuild -exportArchive \
+            -archivePath build/AileTakip.xcarchive \
+            -exportOptionsPlist build/ExportOptions.plist \
+            -exportPath build/ipa \
+            || echo "Export with manual signing failed, creating IPA manually..."
+          
+          # Fallback: manually create IPA from .app in archive
+          IPA_FILE=$(find build/ipa -name "*.ipa" 2>/dev/null | head -1)
+          
+          if [ -z "$IPA_FILE" ]; then
+            echo "=== Fallback: manual IPA from archive ==="
+            APP_PATH=$(find build/AileTakip.xcarchive/Products -name "AileTakip.app" -type d 2>/dev/null | head -1)
+            
+            if [ -z "$APP_PATH" ]; then
+              echo "ERROR: AileTakip.app not found in archive"
+              find build/AileTakip.xcarchive -name "*.app" -type d 2>/dev/null || echo "No .app found anywhere"
+              exit 1
+            fi
+            
+            echo "Found app: $APP_PATH"
+            mkdir -p build/IPA/Payload
+            cp -r "$APP_PATH" build/IPA/Payload/
+            cd build/IPA
+            zip -r ../../AileTakip-v${VERSION}.ipa Payload/
+            cd ../..
+            IPA_FILE="AileTakip-v${VERSION}.ipa"
           fi
           
-          echo "Found app: $APP_PATH"
-          
-          # Create IPA structure
-          mkdir -p build/IPA/Payload
-          cp -r "$APP_PATH" build/IPA/Payload/
-          
-          # Create IPA (zip)
-          cd build/IPA
-          zip -r ../../AileTakip-v${VERSION}.ipa Payload/
-          cd ../..
+          # Rename to correct version
+          FINAL_NAME="AileTakip-v${VERSION}.ipa"
+          if [ -f "$IPA_FILE" ] && [ "$(basename $IPA_FILE)" != "$FINAL_NAME" ]; then
+            mv "$IPA_FILE" "$FINAL_NAME"
+          fi
           
           echo "=== IPA Created ==="
-          ls -lh AileTakip-v${VERSION}.ipa
+          ls -lh $FINAL_NAME
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
