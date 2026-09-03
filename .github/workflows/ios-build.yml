@@ -40,7 +40,6 @@ jobs:
       - name: Build for iOS Simulator (Debug)
         run: |
           cd ios
-          set -o pipefail
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
