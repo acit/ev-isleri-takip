@@ -66,52 +66,37 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "iOS Version: $VERSION"
 
-      - name: Build & Archive for IPA
+      - name: Build for Device (Release) — No Code Sign
         run: |
           cd ios
-          echo "=== Archiving AileTakip ==="
+          set -o pipefail
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
-            -archivePath build/AileTakip.xcarchive \
-            -destination "generic/platform=iOS" \
+            -sdk iphoneos \
             -configuration Release \
+            -derivedDataPath build/DerivedData \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             | xcpretty
-          
-          echo "=== Archive created ==="
-          ls -la build/AileTakip.xcarchive/Products/ 2>/dev/null || echo "Products dir check"
 
-      - name: Package IPA from Archive
+      - name: Create IPA from Device Build
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
           FINAL_NAME="AileTakip-v${VERSION}.ipa"
           
-          echo "=== Archive structure ==="
-          find build/AileTakip.xcarchive -maxdepth 5 -type d 2>/dev/null | head -30
+          echo "=== DerivedData structure ==="
+          find build/DerivedData -maxdepth 5 -type d 2>/dev/null | head -30
           
           echo "=== Searching for AileTakip.app ==="
-          APP_PATH=$(find build/AileTakip.xcarchive -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "WARN: AileTakip.app not found in archive"
-            echo "Searching for any .app:"
-            find build/AileTakip.xcarchive -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            
-            echo "Trying Simulator build instead..."
-            # Fall back to simulator build for IPA packaging
-            SIM_APP=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
-            if [ -z "$SIM_APP" ]; then
-              echo "ERROR: No AileTakip.app found anywhere"
-              echo "DerivedData structure:"
-              find build/DerivedData -maxdepth 5 -name "*.app" -type d 2>/dev/null || echo "No .app in DerivedData"
-              exit 1
-            fi
-            APP_PATH="$SIM_APP"
-            echo "Using simulator app: $APP_PATH"
+            echo "WARN: AileTakip.app not found in DerivedData, checking for any .app"
+            find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            exit 1
           fi
           
           echo "Found app: $APP_PATH"
@@ -128,9 +113,6 @@ jobs:
           
           echo "=== IPA Created ==="
           ls -lh $FINAL_NAME
-          
-          # Note: This IPA is unsigned. Users need AltStore/Sideloadly to install.
-          echo "Note: This IPA may be unsigned. Use AltStore or Sideloadly to install on device."
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
