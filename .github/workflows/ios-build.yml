@@ -40,6 +40,7 @@ jobs:
       - name: Build for iOS Simulator (Debug)
         run: |
           cd ios
+          set -o pipefail
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
@@ -66,51 +67,33 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "iOS Version: $VERSION"
 
-      - name: Build for Device (Release) — No Code Sign
-        run: |
-          cd ios
-          set -o pipefail
-          xcodebuild \
-            -project AileTakip.xcodeproj \
-            -scheme AileTakip \
-            -sdk iphoneos \
-            -configuration Release \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
-
-      - name: Create IPA from Device Build
+      - name: Package simulator .app as IPA
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
           FINAL_NAME="AileTakip-v${VERSION}.ipa"
-          
-          echo "=== DerivedData structure ==="
-          find build/DerivedData -maxdepth 5 -type d 2>/dev/null | head -30
-          
+
           echo "=== Searching for AileTakip.app ==="
           APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
-          
+
           if [ -z "$APP_PATH" ]; then
-            echo "WARN: AileTakip.app not found in DerivedData, checking for any .app"
-            find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            echo "ERROR: AileTakip.app not found in DerivedData"
+            find build/DerivedData -maxdepth 5 -name "*.app" -type d 2>/dev/null || echo "No .app found"
             exit 1
           fi
-          
+
           echo "Found app: $APP_PATH"
           echo "App size: $(du -sh "$APP_PATH" | cut -f1)"
-          
+
           # Create IPA structure
           mkdir -p build/IPA/Payload
           cp -r "$APP_PATH" build/IPA/Payload/
-          
+
           # Create IPA (zip)
           cd build/IPA
           zip -r ../../$FINAL_NAME Payload/
           cd ../..
-          
+
           echo "=== IPA Created ==="
           ls -lh $FINAL_NAME
 
