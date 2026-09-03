@@ -53,7 +53,7 @@ jobs:
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             build | xcpretty
@@ -64,7 +64,7 @@ jobs:
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
-            -destination 'platform=iOS Simulator,name=iPhone 16,OS=latest' \
+            -destination 'platform=iOS Simulator,OS=latest' \
             -configuration Debug \
             -derivedDataPath build/DerivedData \
             test | xcpretty || true
@@ -86,9 +86,17 @@ jobs:
           APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
 
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: AileTakip.app not found in DerivedData"
-            find build/DerivedData -maxdepth 5 -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            exit 1
+            echo "WARN: AileTakip.app not found, listing all .app files:"
+            find build/DerivedData -maxdepth 6 -name "*.app" -type d 2>/dev/null || echo "No .app found"
+            echo "=== DerivedData structure ==="
+            find build/DerivedData -maxdepth 4 -type d 2>/dev/null | head -30
+            
+            # Try alternate path - sometimes xcodebuild outputs differently
+            APP_PATH=$(find build/DerivedData/Build/Products -name "*.app" -type d 2>/dev/null | head -1)
+            if [ -z "$APP_PATH" ]; then
+              echo "ERROR: No .app found anywhere in DerivedData"
+              exit 1
+            fi
           fi
 
           echo "Found app: $APP_PATH"
