@@ -557,3 +557,24 @@ final class SyncEvent {
         self.synced = synced
     }
 }
+
+// MARK: - Senkronizasyon uyumları
+// Tüm senkronize modeller kimlik eşleştirmesi için IdentifiableIDModel'e uyar.
+// (Bu dosyada `Task` yerel sınıfı Swift.Task'ı gölgeler; uzantılar burada tanımlanır.)
+extension FamilyMember: IdentifiableIDModel {}
+extension Task: IdentifiableIDModel {}
+extension ShoppingItem: IdentifiableIDModel {}
+extension Message: IdentifiableIDModel {}
+extension Note: IdentifiableIDModel {}
+extension Reminder: IdentifiableIDModel {}
+extension Invoice: IdentifiableIDModel {}
+extension Budget: IdentifiableIDModel {}
+extension Expense: IdentifiableIDModel {}
+extension InventoryItem: IdentifiableIDModel {}
+extension MealPlan: IdentifiableIDModel {}
+extension SportsClub: IdentifiableIDModel {}
+extension WorkoutLog: IdentifiableIDModel {}
+extension CalorieLog: IdentifiableIDModel {}
+extension MenstrualCycle: IdentifiableIDModel {}
+extension WaterLog: IdentifiableIDModel {}
+extension SleepLog: IdentifiableIDModel {}

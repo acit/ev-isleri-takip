@@ -15,8 +15,11 @@ Aile Takip uygulamasının iOS (SwiftUI) versiyonu.
 | ✅ Sağlık Dashboard | Tamamlandı | Kalori, su, uyku, egzersiz |
 | ✅ Aile Üyeleri | Tamamlandı | Üye yönetimi, puanlama |
 | ✅ Örnek Veriler | Tamamlandı | Yılmaz Ailesi demo verileri |
+| ✅ Kronolojik mesajlar | Tamamlandı | Yeni mesajlar en altta (WhatsApp davranışı) |
+| ✅ WhatsApp davet | Tamamlandı | wa.me linki + paylaşım sayfası yedeği |
+| ✅ Senkronizasyon ekranı | Tamamlandı | Grup ID/şifre giriş, davet kodu paylaşımı |
 | 🔄 QR/Barkod Tarama | Planlandı | CameraKit entegrasyonu |
-| 🔄 Firebase Sync | Planlandı | Realtime Database entegrasyonu |
+| ✅ Firebase Sync | Tamamlandı | REST üzerinden RTDB senkronu (Android paritesi) |
 
 ## 🛠 Teknoloji
 
@@ -38,13 +41,39 @@ ios/
 │   ├── Views/
 │   │   ├── ContentView.swift       # Ana tab bar + tüm ekranlar
 │   │   ├── DashboardView.swift     # Ana sayfa dashboard
-│   │   └── TasksView.swift         # Görev yönetimi
+│   │   ├── TasksView.swift         # Görev yönetimi
+│   │   ├── ModulesView.swift       # Notlar/Hatırlatıcılar/Faturalar/Envanter/Sağlık/Senkron
+│   │   └── ShareHelpers.swift      # WhatsApp davet paylaşımı
 │   ├── ViewModels/
-│   │   └── MainViewModel.swift     # İş mantığı + CRUD
-│   ├── Services/                   # Firebase, Notification vb.
-│   └── Resources/                  # Assets, ikonlar
+│   │   └── MainViewModel.swift     # İş mantığı + CRUD + otomatik senkron köprüsü
+│   └── Services/
+│       ├── FirebaseSyncClient.swift    # Firebase Auth + RTDB (REST)
+│       ├── FirebaseSyncService.swift   # Üyelik + tablo senkronu (Android paritesi)
+│       ├── SyncDataCoordinator.swift   # SwiftData ↔ JSON mapper'lar (17 tablo)
+│       └── ConflictResolver.swift      # Son değiştiren kazanır + deterministik eşitlik
 └── README-iOS.md                   # Bu dosya
 ```
+
+## 🔄 Firebase Senkronizasyonu (Android ile Ortak Aile Grubu)
+
+iOS uygulaması, Android sürümüyle **aynı Firebase projesini ve aynı aile grubunu** kullanır:
+
+1. Firebase Console → Proje Ayarları → **Web API Key** kopyalayın
+2. Realtime Database URL'ini kopyalayın (örn. `https://<proje>-default-rtdb.europe-west1.firebasedatabase.app`)
+3. iOS uygulaması → Profil → Senkronizasyon → **Firebase Ayarları**'na bu ikisini girin
+   (bir kez girilir, cihazda saklanır)
+4. Android'deki gibi: aile hesabı (e-posta/şifre) → grup oluştur **veya** grup ID + aile
+   şifresiyle katılım isteği → onaydan sonra senkron otomatik başlar
+
+Teknik notlar:
+- Ek bağımlılık yoktur (`GoogleService-Info.plist`/SPM gerekmez): kimlik doğrulama
+  `identitytoolkit.googleapis.com`, veritabanı REST `{dbUrl}/aile_grubu/{gid}/....json`
+  üzerinden yapılır. Kimlik doğrulama `?auth={idToken}` parametresiyle iletilir.
+- Wire format Android ile birebir aynıdır: aynı tablo adları, alan adları, epoch ms
+  zaman damgaları, `meta/tombstones` silme yayılımı.
+- Çakışma çözümü aynı kuralları işletir: **son değiştiren kazanır** (`syncVersion`),
+  eşitlikte deterministik içerik karşılaştırması, silme-düzenleme çakışmasında
+  `deletedAt` karşılaştırması. Böylece Android ve iOS cihazları asla ayrışmaz.
 
 ## 🚀 Çalıştırma
 

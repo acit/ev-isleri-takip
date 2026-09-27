@@ -14,6 +14,16 @@
 		A1000005 /* TasksView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005 /* TasksView.swift */; };
 		A1000006 /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006 /* MainViewModel.swift */; };
 		A1000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000007 /* Assets.xcassets */; };
+		A1000008 /* TodosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* TodosView.swift */; };
+		A1000009 /* ShoppingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000009 /* ShoppingView.swift */; };
+		A1000010 /* BudgetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* BudgetView.swift */; };
+		A1000011 /* ModulesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* ModulesView.swift */; };
+		A1000012 /* ShareHelpers.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000013 /* ShareHelpers.swift */; };
+		A1000013 /* FirebaseSyncClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* FirebaseSyncClient.swift */; };
+		A1000014 /* FirebaseSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000015 /* FirebaseSyncService.swift */; };
+		A1000015 /* SyncDataCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000016 /* SyncDataCoordinator.swift */; };
+		A1000016 /* ConflictResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000017 /* ConflictResolver.swift */; };
+		A1000017 /* QRInvite.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000018 /* QRInvite.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,6 +34,16 @@
 		A2000005 /* TasksView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TasksView.swift; sourceTree = "<group>"; };
 		A2000006 /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainViewModel.swift; sourceTree = "<group>"; };
 		A2000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A2000008 /* TodosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodosView.swift; sourceTree = "<group>"; };
+		A2000009 /* ShoppingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShoppingView.swift; sourceTree = "<group>"; };
+		A2000011 /* BudgetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BudgetView.swift; sourceTree = "<group>"; };
+		A2000012 /* ModulesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModulesView.swift; sourceTree = "<group>"; };
+		A2000013 /* ShareHelpers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareHelpers.swift; sourceTree = "<group>"; };
+		A2000014 /* FirebaseSyncClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSyncClient.swift; sourceTree = "<group>"; };
+		A2000015 /* FirebaseSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseSyncService.swift; sourceTree = "<group>"; };
+		A2000016 /* SyncDataCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncDataCoordinator.swift; sourceTree = "<group>"; };
+		A2000017 /* ConflictResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConflictResolver.swift; sourceTree = "<group>"; };
+		A2000018 /* QRInvite.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRInvite.swift; sourceTree = "<group>"; };
 		A2000010 /* AileTakip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AileTakip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -43,6 +63,7 @@
 				A3000004 /* Models */,
 				A3000005 /* Views */,
 				A3000006 /* ViewModels */,
+				A3000007 /* Services */,
 				A2000007 /* Assets.xcassets */,
 			);
 			path = AileTakip;
@@ -69,8 +90,25 @@
 				A2000003 /* ContentView.swift */,
 				A2000004 /* DashboardView.swift */,
 				A2000005 /* TasksView.swift */,
+				A2000008 /* TodosView.swift */,
+				A2000009 /* ShoppingView.swift */,
+				A2000011 /* BudgetView.swift */,
+				A2000012 /* ModulesView.swift */,
+				A2000013 /* ShareHelpers.swift */,
+				A2000018 /* QRInvite.swift */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A3000007 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				A2000014 /* FirebaseSyncClient.swift */,
+				A2000015 /* FirebaseSyncService.swift */,
+				A2000016 /* SyncDataCoordinator.swift */,
+				A2000017 /* ConflictResolver.swift */,
+			);
+			path = Services;
 			sourceTree = "<group>";
 		};
 		A3000006 /* ViewModels */ = {
@@ -140,6 +178,16 @@
 				A1000004 /* DashboardView.swift in Sources */,
 				A1000005 /* TasksView.swift in Sources */,
 				A1000006 /* MainViewModel.swift in Sources */,
+				A1000008 /* TodosView.swift in Sources */,
+				A1000009 /* ShoppingView.swift in Sources */,
+				A1000010 /* BudgetView.swift in Sources */,
+				A1000011 /* ModulesView.swift in Sources */,
+				A1000012 /* ShareHelpers.swift in Sources */,
+				A1000013 /* FirebaseSyncClient.swift in Sources */,
+				A1000014 /* FirebaseSyncService.swift in Sources */,
+				A1000015 /* SyncDataCoordinator.swift in Sources */,
+				A1000016 /* ConflictResolver.swift in Sources */,
+				A1000017 /* QRInvite.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -218,6 +266,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Aile Takip";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aile davet QR kodunu okutmak için kamera kullanılır.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -226,8 +275,9 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
-				);MARKETING_VERSION = 3.5.0;
-					CURRENT_PROJECT_VERSION = 9;
+				);
+				MARKETING_VERSION = 3.7.4;
+				CURRENT_PROJECT_VERSION = 21;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -246,6 +296,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Aile Takip";
+				INFOPLIST_KEY_NSCameraUsageDescription = "Aile davet QR kodunu okutmak için kamera kullanılır.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -254,8 +305,9 @@
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
-				);MARKETING_VERSION = 3.5.0;
-					CURRENT_PROJECT_VERSION = 9;
+				);
+				MARKETING_VERSION = 3.7.4;
+				CURRENT_PROJECT_VERSION = 21;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";

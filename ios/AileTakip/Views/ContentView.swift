@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var vm: MainViewModel
     @State private var selectedTab = 0
-    
+
     var body: some View {
         TabView(selection: $selectedTab) {
             DashboardView()
@@ -11,31 +11,31 @@ struct ContentView: View {
                     Label("Ana Sayfa", systemImage: "house.fill")
                 }
                 .tag(0)
-            
+
             TodosView()
                 .tabItem {
                     Label("Görevler", systemImage: "checkmark.circle")
                 }
                 .tag(1)
-            
+
             ShoppingView()
                 .tabItem {
                     Label("Alışveriş", systemImage: "cart")
                 }
                 .tag(2)
-            
+
             BudgetView()
                 .tabItem {
                     Label("Bütçe", systemImage: "dollarsign.circle")
                 }
                 .tag(3)
-            
+
             MessagesView()
                 .tabItem {
                     Label("Mesajlar", systemImage: "message")
                 }
                 .tag(4)
-            
+
             ProfileView()
                 .tabItem {
                     Label("Profil", systemImage: "person.circle")
@@ -52,14 +52,18 @@ struct ContentView: View {
 struct MessagesView: View {
     @EnvironmentObject var vm: MainViewModel
     @State private var newMessage = ""
-    
+
+    // vm.messages eskiden yeniye sıralı (DESC); kronolojik görünüm için ters çevrilir:
+    // yeni mesajlar listenin en altında görünür (WhatsApp davranışı).
+    private var chronological: [Message] { vm.messages.reversed() }
+
     var body: some View {
         NavigationStack {
             VStack {
                 ScrollViewReader { proxy in
                     ScrollView {
                         LazyVStack(spacing: 12) {
-                            ForEach(vm.messages.reversed()) { message in
+                            ForEach(chronological) { message in
                                 MessageBubble(message: message)
                                     .id(message.id)
                             }
@@ -67,19 +71,24 @@ struct MessagesView: View {
                         .padding()
                     }
                     .onChange(of: vm.messages.count) { _, _ in
-                        if let last = vm.messages.last {
+                        if let last = chronological.last {
                             withAnimation {
                                 proxy.scrollTo(last.id, anchor: .bottom)
                             }
                         }
                     }
+                    .onAppear {
+                        if let last = chronological.last {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        }
+                    }
                 }
-                
+
                 // Message Input
                 HStack {
                     TextField("Mesaj yaz...", text: $newMessage)
                         .textFieldStyle(.roundedBorder)
-                    
+
                     Button {
                         if !newMessage.isEmpty {
                             vm.sendMessage(content: newMessage)
@@ -100,13 +109,13 @@ struct MessagesView: View {
 
 struct MessageBubble: View {
     let message: Message
-    
+
     var isMe: Bool { message.senderId == "self" }
-    
+
     var body: some View {
         HStack {
             if isMe { Spacer() }
-            
+
             VStack(alignment: isMe ? .trailing : .leading, spacing: 4) {
                 if !isMe {
                     Text(message.senderName)
@@ -121,7 +130,7 @@ struct MessageBubble: View {
                     .cornerRadius(16)
             }
             .frame(maxWidth: 280, alignment: isMe ? .trailing : .leading)
-            
+
             if !isMe { Spacer() }
         }
     }
@@ -130,7 +139,7 @@ struct MessageBubble: View {
 // MARK: - Profile View
 struct ProfileView: View {
     @EnvironmentObject var vm: MainViewModel
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -143,7 +152,7 @@ struct ProfileView: View {
                                 .overlay(Text(String(member.name.prefix(1)))
                                     .font(.headline)
                                     .foregroundStyle(.white))
-                            
+
                             VStack(alignment: .leading) {
                                 Text(member.name)
                                     .font(.headline)
@@ -151,16 +160,59 @@ struct ProfileView: View {
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
-                            
+
                             Spacer()
-                            
+
                             Text("\(member.points) puan")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
                     }
                 }
-                
+
+                Section("Modüller") {
+                    NavigationLink {
+                        NotesView()
+                    } label: {
+                        Label("Notlar", systemImage: "note.text")
+                    }
+                    NavigationLink {
+                        RemindersView()
+                    } label: {
+                        Label("Hatırlatıcılar", systemImage: "bell.fill")
+                    }
+                    NavigationLink {
+                        InvoicesView()
+                    } label: {
+                        Label("Faturalar", systemImage: "doc.text.fill")
+                    }
+                    NavigationLink {
+                        InventoryView()
+                    } label: {
+                        Label("Envanter", systemImage: "archivebox.fill")
+                    }
+                    NavigationLink {
+                        MealPlanView()
+                    } label: {
+                        Label("Yemek Planı", systemImage: "fork.knife")
+                    }
+                    NavigationLink {
+                        HealthDashboardView()
+                    } label: {
+                        Label("Sağlık", systemImage: "figure.run")
+                    }
+                    NavigationLink {
+                        FamilyMembersView()
+                    } label: {
+                        Label("Aile Üyeleri Yönetimi", systemImage: "person.3.fill")
+                    }
+                    NavigationLink {
+                        SyncSettingsView(sync: vm.syncService)
+                    } label: {
+                        Label("Senkronizasyon", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                }
+
                 Section("İstatistikler") {
                     HStack {
                         Text("Toplam Görev")
@@ -176,14 +228,6 @@ struct ProfileView: View {
                         Text("Toplam Mesaj")
                         Spacer()
                         Text("\(vm.messages.count)")
-                    }
-                }
-                
-                Section {
-                    HStack {
-                        Image(systemName: "moon.fill")
-                        Text("Dark Mode")
-                        Spacer()
                     }
                 }
             }

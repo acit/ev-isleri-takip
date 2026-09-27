@@ -11,6 +11,14 @@ class MainViewModel: ObservableObject {
     @Published var isAuthenticated = true
     @Published var currentUser: FamilyMember?
     
+    // Aile grubu bilgisi (senkronizasyon daveti için kalıcı saklanır)
+    @Published var currentGroupId: String
+    @Published var currentPasscode: String
+    
+    // MARK: - Firebase Senkronizasyon
+    /// Android `FirebaseSyncService` + `AutoSyncEngine` paritesi.
+    lazy var syncService: FirebaseSyncService = FirebaseSyncService(modelContext: modelContext)
+    
     // MARK: - Data
     @Published var members: [FamilyMember] = []
     @Published var tasks: [Task] = []
@@ -61,6 +69,9 @@ class MainViewModel: ObservableObject {
     
     // MARK: - Init
     init() {
+        let defaults = UserDefaults.standard
+        _currentGroupId = Published(initialValue: defaults.string(forKey: "familyGroupId") ?? "")
+        _currentPasscode = Published(initialValue: defaults.string(forKey: "familyPasscode") ?? "")
         do {
             let config = ModelConfiguration(isStoredInMemoryOnly: false)
             let container = try ModelContainer(
@@ -75,6 +86,7 @@ class MainViewModel: ObservableObject {
             self.modelContainer = container
             self.modelContext = container.mainContext
             loadData()
+            restoreSyncSession()
         } catch {
             fatalError("Could not initialize ModelContainer: \(error)")
         }
@@ -432,6 +444,52 @@ class MainViewModel: ObservableObject {
     // MARK: - Helpers
     private func save() {
         try? modelContext.save()
+        scheduleSyncPush()
+    }
+    
+    /// Aile grubu davet bilgilerini günceller ve kalıcı olarak saklar.
+    func setFamilyGroup(groupId: String, passcode: String) {
+        currentGroupId = groupId
+        currentPasscode = passcode
+        UserDefaults.standard.set(groupId, forKey: "familyGroupId")
+        UserDefaults.standard.set(passcode, forKey: "familyPasscode")
+        syncService.setGroup(groupId)
+    }
+
+    // MARK: - Senkronizasyon köprüsü
+
+    /// Otomatik senkron açıkken her yerel değişikliği 2 saniye içinde gruba gönderir
+    /// (Android `AutoSyncEngine` debounce davranışı).
+    private var pendingSyncTask: Task<Void, Never>?
+    @Published var autoSyncEnabled: Bool = UserDefaults.standard.object(forKey: "autoSyncEnabled") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(autoSyncEnabled, forKey: "autoSyncEnabled") }
+    }
+
+    private func scheduleSyncPush() {
+        guard autoSyncEnabled, syncService.membership.isMember else { return }
+        pendingSyncTask?.cancel()
+        pendingSyncTask = Swift.Task { [weak self] in
+            try? await Swift.Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Swift.Task.isCancelled else { return }
+            guard let self else { return }
+            for table in SyncTables.all {
+                await self.syncService.syncTable(table)
+            }
+        }
+    }
+
+    /// Açılışta kayıtlı oturumu ve grubu yükler; üye ise verileri indirir.
+    func restoreSyncSession() {
+        FirebaseSyncClient.loadSavedConfig()
+        if let savedGroup = UserDefaults.standard.string(forKey: "familyGroupId"), !savedGroup.isEmpty {
+            currentGroupId = savedGroup
+            syncService.setGroup(savedGroup)
+        }
+        if syncService.isSignedIn, currentGroupId.isEmpty == false {
+            Swift.Task {
+                _ = await syncService.refreshMembership()
+            }
+        }
     }
     
     private func formatDate(_ date: Date) -> String {
