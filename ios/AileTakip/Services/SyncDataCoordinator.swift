@@ -3,8 +3,13 @@ import SwiftData
 
 /// Tek bir senkron satırı: kimlik + gönderilebilir içerik (Android `SyncRow` paritesi).
 /// Swift concurrency `Task` tipiyle karışmaması için module-wide `typealias`.
-/// (Modülde `final class Task` SwiftData modeli var; onun init'i string kabul ediyor.)
+/// (Modülde `final class Task` SwiftData modeli var; Swift.Task qualified erişim
+/// bu modülde çözümlenemediği için _Concurrency Task'ına doğrudan bağlanıyor.)
+#if canImport(_Concurrency)
+typealias SyncTask = _Concurrency.Task
+#else
 typealias SyncTask = Swift.Task
+#endif
 
 struct SyncRow {
     let id: String
