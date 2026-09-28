@@ -156,20 +156,23 @@ jobs:
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
-          echo "=== Finding AileTakip.app (yalnızca gerçek ürün, Intermediates değil) ==="
-          APP_PATH=$(find build/DerivedData/Build/Products -name "AileTakip.app" -type d 2>/dev/null | head -1)
-          
+          echo "=== Derleme ürün dizinleri ==="
+          ls -la build/DerivedData/Build/Products/ 2>/dev/null || true
+          echo "=== Tüm AileTakip.app kopyaları ==="
+          find build/DerivedData -maxdepth 6 -name "AileTakip.app" -type d 2>/dev/null
+          echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü) ==="
+          APP_PATH=""
+          for candidate in $(find build/DerivedData -maxdepth 6 -name "AileTakip.app" -type d 2>/dev/null); do
+            if [ -f "$candidate/AileTakip" ]; then
+              case "$candidate" in
+                *Release*) APP_PATH="$candidate"; break ;;
+              esac
+              if [ -z "$APP_PATH" ]; then APP_PATH="$candidate"; fi
+            fi
+          done
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: AileTakip.app not found in build/DerivedData/Build/Products"
-            echo "=== Listing .app directories ==="
-            find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            exit 1
-          fi
-          
-          # Sağlık kontrolü: ikili dosya gerçekten pakette olmalı (boş .app tuzağına düşme)
-          if [ ! -f "$APP_PATH/AileTakip" ]; then
-            echo "ERROR: binary missing — .app is empty"
-            ls -la "$APP_PATH" || true
+            echo "ERROR: Binary içeren AileTakip.app bulunamadı"
+            find build/DerivedData -name "*.app" -type d 2>/dev/null | while read d; do echo "-- $d"; ls -la "$d" | head -8; done
             exit 1
           fi
           
