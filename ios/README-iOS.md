@@ -74,6 +74,10 @@ Teknik notlar:
 - Çakışma çözümü aynı kuralları işletir: **son değiştiren kazanır** (`syncVersion`),
   eşitlikte deterministik içerik karşılaştırması, silme-düzenleme çakışmasında
   `deletedAt` karşılaştırması. Böylece Android ve iOS cihazları asla ayrışmaz.
+- **Canlı izleme**: uygulama açıkken 30 saniyede bir uzak tablolar çekilir (Android
+  ValueEventListener'ın REST karşılığı); onay bekleyen kullanıcıların üyeliği de
+  periyodik kontrol edilir, onay gelince senkron otomatik başlar. Senkronizasyon
+  ekranındaki "Uzak değişiklikleri canlı izle" anahtarıyla kapatılabilir.
 
 ## 🚀 Çalıştırma
 

@@ -501,6 +501,7 @@ struct SyncSettingsView: View {
 
             Section("Otomatik Senkron") {
                 Toggle("Her değişiklikte gönder", isOn: $vm.autoSyncEnabled)
+                Toggle("Uzak değişiklikleri canlı izle (30 sn)", isOn: $sync.autoPollEnabled)
             }
 
             Section("Nasıl Çalışır") {

@@ -73,6 +73,15 @@ final class FirebaseSyncService: ObservableObject {
     /// Grubun aile şifresi özeti (katılım isteği ekranında eşleşme bilgisi için).
     @Published private(set) var groupPasscodeHash: String?
 
+    /// Uzak değişikliklerin düzenli çekilmesi (canlı polling); varsayılan açık.
+    @Published var autoPollEnabled: Bool = UserDefaults.standard.object(forKey: "syncAutoPoll") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(autoPollEnabled, forKey: "syncAutoPoll")
+            if !autoPollEnabled { stopLivePolling() }
+            else if membership.isMember { startLivePolling() }
+        }
+    }
+
     /// Uzak veri uygulanırken çağrılır (UI'da sayaç/kullanıcı adı tazelenir).
     var onRemoteDataApplied: (() -> Void)?
 
@@ -129,6 +138,7 @@ final class FirebaseSyncService: ObservableObject {
 
     /// Aile hesabından çıkar; yerel veriler korunur.
     func signOut() {
+        stopLivePolling()
         client.signOut()
         uid = nil
         membership = .signedOut
@@ -178,6 +188,8 @@ final class FirebaseSyncService: ObservableObject {
                 "status": "pending", "requestedAt": now
             ])
             membership = .pending(uid)
+            // Onay gelince otomatik senkrona geçmek için üyeliği izlemeye al
+            startLivePolling()
             return membership
         } catch {
             return fail(.error(error.localizedDescription))
@@ -298,6 +310,7 @@ final class FirebaseSyncService: ObservableObject {
         }
         await loadPendingJoins()
         await initialDownload()
+        startLivePolling()
         return membership
     }
 
@@ -431,7 +444,45 @@ final class FirebaseSyncService: ObservableObject {
         onRemoteDataApplied?()
     }
 
+    // MARK: - Canlı polling (uzak değişiklikleri düzenli çekme)
+
+    /// Uygulama açıkken uzak değişiklikleri belirli aralıklla çeker.
+    /// Android'deki ValueEventListener'ın REST karşılığıdır: SDK canlı soket
+    /// dinleyemediği için polling kullanır (varsayılan 30 saniye).
+    private var pollingTask: Swift.Task<Void, Never>?
+
+    func startLivePolling(interval: TimeInterval = 30) {
+        guard pollingTask == nil else { return }  // çift başlatma koruması
+        pollingTask = Swift.Task { [weak self] in
+            while !Swift.Task.isCancelled {
+                try? await Swift.Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !Swift.Task.isCancelled else { break }
+                await self?.pollTick()
+            }
+        }
+    }
+
+    func stopLivePolling() {
+        pollingTask?.cancel()
+        pollingTask = nil
+    }
+
+    var isLivePolling: Bool { pollingTask != nil }
+
+    /// Tek bir tık: üyeyse tüm tabloları çeker; onay bekliyorsa üyeliği kontrol eder
+    /// (onay gelirse `becomeMember` senkronu ve polling'i otomatik başlatır).
+    private func pollTick() async {
+        guard isConfigured, autoPollEnabled else { return }
+        if membership.isMember {
+            await initialDownload()
+            await loadPendingJoins()
+        } else if uid != nil, groupId != nil {
+            _ = await refreshMembership()
+        }
+    }
+
     func disconnect() {
+        stopLivePolling()
         syncState = .disconnected
         if let uid = uid { membership = .notMember(uid) }
     }

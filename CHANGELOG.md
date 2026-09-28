@@ -10,6 +10,9 @@ Aile Takip uygulamasının tüm değişiklikleri.
 > okutulur, grup kimliği + aile şifresi otomatik dolar, giriş yapılmışsa katılım isteği
 > anında gönderilir (Android "tek tarama" akışının paritesi). iOS artık kendi davet
 > QR kodunu da üretir (CIFilter, ek bağımlılık yok); kamera izni açıklaması eklendi.
+> Ayrıca **canlı izleme (30 sn polling)**: uygulama açıkken uzak değişiklikler otomatik
+> gelir (mesajlar, görevler vb. diğer cihazlardan); onay bekleyen kullanıcıların
+> üyeliği de periyodik kontrol edilir. Ayarlardan kapatılabilir.
 
 ### 💬 Mesajlar + WhatsApp Daveti + iOS Paritesi
 - **Sohbet sıralaması düzeltildi** — mesajlar artık kronolojik sıralanır (eski üstte,

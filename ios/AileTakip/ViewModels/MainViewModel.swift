@@ -86,6 +86,11 @@ class MainViewModel: ObservableObject {
             self.modelContainer = container
             self.modelContext = container.mainContext
             loadData()
+            // Uzak senkron verisi uygulandığında tüm listeleri tazele
+            // (mesajlar, görevler vb. diğer cihazlardan canlı gelsin)
+            syncService.onRemoteDataApplied = { [weak self] in
+                self?.loadData()
+            }
             restoreSyncSession()
         } catch {
             fatalError("Could not initialize ModelContainer: \(error)")
