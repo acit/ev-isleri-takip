@@ -140,16 +140,18 @@ jobs:
           swift --version
 
       - name: Build for Device (Release) — No Code Sign
+        shell: bash
         run: |
+          set -x
           cd ios
           set -o pipefail
-          # Kök neden: actool 22A3362 (iphonesimulator SDK, Xcode 16.0) için runtime
-          # listesi runner'da eksik/uyumsuz (runner-images #13317 workaround'u).
-          # Çözüm: iOS simulator runtime'ını açıkça indir + doğrula.
-          xcodebuild -downloadPlatform iOS 2>&1 | tail -3 || true
-          xcrun simctl runtime list 2>&1 | head -8 || true
-          # Ham xcodebuild çıktısı dosyaya yazılır; konsola xcpretty özeti gider.
-          # Derleme başarısız olsa bile raw log artifact'e eklenir (Upload iOS Logs).
+          LOG=build/xcodebuild-device.log
+          echo "step start: $(date -u +%H:%M:%S)" | tee "$LOG"
+          # actool simulator-runtime sorunlarına karşı: platform bileşenini tazele
+          # (zaten güncelse hızlı döner; uzun sürmesin diye 120 sn ile sınırla)
+          timeout 120 xcodebuild -downloadPlatform iOS 2>&1 | tail -3 || echo "downloadPlatform skip ($?)" | tee -a "$LOG"
+          xcrun simctl runtime list 2>&1 | tee -a "$LOG" || true
+          # Derleme: ham çıktı dosyaya; özet konsola
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
@@ -159,21 +161,20 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee build/xcodebuild-device.log | xcpretty || true
+            2>&1 | tee -a "$LOG" | xcpretty || true
           BUILD_RESULT=${PIPESTATUS[0]:-0}
-          echo "xcodebuild exit code: $BUILD_RESULT" | tee -a build/xcodebuild-device.log
+          echo "xcodebuild exit code: $BUILD_RESULT" | tee -a "$LOG"
           if [ "$BUILD_RESULT" -ne 0 ]; then
             echo "::error::xcodebuild başarısız (exit $BUILD_RESULT) — detay: build/xcodebuild-device.log artifact'i"
-            exit $BUILD_RESULT
+            exit "$BUILD_RESULT"
           fi
-          # Ürün gerçekten üretildi mi? (binary .app paketinin içinde)
           PRODUCT_BIN="build/DerivedData/Build/Products/Release-iphoneos/AileTakip.app/AileTakip"
           if [ ! -f "$PRODUCT_BIN" ]; then
             echo "::error::Beklenen ürün bulunamadı: $PRODUCT_BIN"
-            find build/DerivedData/Build/Products -maxdepth 3 -type d | tee -a build/xcodebuild-device.log
+            find build/DerivedData/Build/Products -maxdepth 3 -type d | tee -a "$LOG"
             exit 1
           fi
-          echo "Ürün üretildi: $PRODUCT_BIN ($(du -sh "$PRODUCT_BIN" | cut -f1))"
+          echo "Ürün üretildi: $PRODUCT_BIN ($(du -sh "$PRODUCT_BIN" | cut -f1))" | tee -a "$LOG"
 
       - name: Get iOS version
         id: ios_version
