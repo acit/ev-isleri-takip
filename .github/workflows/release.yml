@@ -220,8 +220,9 @@ jobs:
           ls -lh "AileTakip-v${VERSION}.ipa" | tee -a "$LOG"
           SIZE=$(stat -f%z "AileTakip-v${VERSION}.ipa" 2>/dev/null || stat -c%s "AileTakip-v${VERSION}.ipa")
           echo "IPA boyutu: $SIZE bytes" | tee -a "$LOG"
-          if [ "$SIZE" -lt 1000000 ]; then
-            echo "::error::IPA şüpheli derecede küçük ($SIZE bytes)"
+          # Boş-zip koruması: gerçek IPA ~700KB; eşik 100KB
+          if [ "$SIZE" -lt 100000 ]; then
+            echo "::error::IPA şüpheli derecede küçük ($SIZE bytes)" | tee -a "$LOG"
             exit 1
           fi
 
