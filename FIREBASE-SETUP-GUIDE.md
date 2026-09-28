@@ -132,26 +132,94 @@ altında `deletedAt` zamanı bırakılır:
 
 ---
 
-## 🛠️ Sorun Giderme
+## 🛠️ Sorun Giderme / SSS
 
-### Hata: "Firebase baslatilamadi"
-- `google-services.json` dosyasının güncel olduğundan emin ol
-- Firebase Console'da Android uygulamasının package name'inin `com.aile.takip` olduğundan emin ol
+### 🔌 Bağlanmıyor
 
-### Hata: "Permission denied"
-- `firebase/database.rules.json` kurallarının **publish edildiğinden** emin ol
-- Kullanıcının **aile hesabıyla giriş yaptığından** emin ol (Anonymous kapalı olmalı)
-- Kullanıcının UID'sinin `meta/members/` altında bulunduğunu doğrula
-  (yoksa katılım isteği gönderip bir aile bireyinin **onaylaması** gerekir)
+**Hata: "Firebase baslatilamadi" (Android)**
+- `app/google-services.json` güncel mi? (Firebase Console → indir)
+- Firebase Console'daki Android uygulamasının package name'i `com.aile.takip` mi?
 
-### Hata: "Katılım isteği onaylanmıyor"
-- İsteği gönderen kişi **doğru aile şifresini** girmiş olmalı
-  (onaylayan ekranda "Aile şifresi eşleşmiyor" uyarısı çıkar)
-- Group ID'nin davet koduyla birebir aynı olduğundan emin ol
+**Hata: "Permission denied"**
+- `firebase/database.rules.json` içeriği Firebase Console'da **Publish** edildi mi?
+- Uygulamada **aile hesabıyla giriş yapıldı mı?** (Anonymous kapalı; gerçek e-posta/şifre gerekli)
+- UID'niz `aile_grubu/<grup>/meta/members/` altında var mı? Yoksa katılım isteği gönderip bir
+  aile bireyinin **onaylaması** gerekir.
+- Kurallar yeni publish edildiyse uygulamada senkron ekranını kapatıp açın.
 
-### Hata: "Database not found"
-- Realtime Database'in europe-west1 bölgesinde oluşturulduğundan emin ol
-- Database URL'inin doğru olduğundan emin ol
+**Hata: "Database not found"**
+- Database URL'i doğru mu? europe-west1 bölgesindeki veritabanlarının URL'i
+  `...firebasedatabase.app` ile biter (US ise `.firebaseio.com`).
+- iOS: **Senkronizasyon → Firebase Ayarları**'na URL `https://` dahil eksiksiz girilmiş mi?
+
+**Durum "Bağlantı yok" gösteriyor**
+- İnternet bağlantısını kontrol edin.
+- Android: yanlışlıkla **"Kes"** basıldıysa senkron ekranından grubu yeniden seçip bağlanın.
+- iOS: **"Uzak değişiklikleri canlı izle (30 sn)"** anahtarı kapalıysa uzak veriler otomatik
+  gelmez; açın veya **"Şimdi Senkronize Et"** kullanın.
+
+**E-posta/şifre girişi başarısız**
+- Hesap oluştururken şifre **en az 6 karakter** olmalı.
+- `EMAIL_NOT_FOUND` / `WRONG_PASSWORD`: hesap başka bir e-postayla açılmış olabilir.
+  Her aile bireyi **kendi e-postasıyla ayrı hesap** açar; aynı hesap paylaşılmaz.
+- Firebase Console → Authentication → Sign-in method'da **Email/Password etkin** mi?
+
+### ⏳ Onay gelmiyor
+
+1. **İstek doğru gruba mı gitti?** Grup kimliğini elle yazdıysanız harf hatası olabilir;
+   QR ile taratmak en güvenlisidir.
+2. **Onaylayan cihazın uygulaması açık mı?**
+   - Android: üye ekranı açıkken istekler canlı düşer.
+   - iOS: onaylayan cihazda uygulama açık olmalı; canlı izleme istekleri **30 sn'de bir** çeker.
+3. **"Aile şifresi eşleşmiyor" uyarısı**: şifre yanlış girilmiş. Onay butonu yalnızca
+   şifre eşleşince aktifleşir — bu istenmeyen kişilerin onaylanmasını engeller.
+4. Onaylandıktan sonra kendi cihazınızda:
+   - Android: senkron ekranında **"Durumu Yenile"** basın (çoğu zaman otomatik yakalar).
+   - iOS: canlı izleme açıksa **en geç 30 sn içinde** otomatik üye olur ve senkron başlar.
+5. Hâlâ gelmediyse Firebase Console → Realtime Database → `aile_grubu/<grup>/joins/`
+   altında isteğinizin kayıtlı olup olmadığına bakın.
+6. İsteğiniz **reddedildiyse** "Reddedildi" durumu görünür; aile bireyinizle konuşup
+   yeniden istek gönderebilirsiniz.
+
+### 👻 Veri görünmüyor
+
+- **Onaydan sonra ilk indirme otomatik yapılır.** Görünmüyorsa senkron ekranında
+  **"Şimdi Senkronize Et" (iOS) / "Tümünü Gönder" (Android)** basın.
+- **İki cihaz aynı grupta mı?** Senkron ekranındaki Grup ID'ler birebir aynı olmalı
+  (farklı grup = ayrı veri adası).
+- **Kırmızı hata satırı** (örn. "Hata: permission denied") varsa üstteki **Bağlanmıyor**
+  bölümüne bakın.
+- **Silinen kayıtlar geri gelmez:** silme işlemi mezar taşlarıyla tüm cihazlara yayılır;
+  karşı cihaz bir kaydı sildiyseniz sizde de silinir (bu normal davranıştır).
+- **iOS'ta güncelleme 30 sn'ye kadar gecikebilir:** uzak değişiklikler polling ile gelir
+  (Android SDK canlı dinlemeyle anında alır). Anında görmek için ekranı yenileyin.
+- Yerel örnek veriler (Yılmaz Ailesi demo verisi) grup kuruluşunda aileye taşınır;
+  silmek isterseniz kaydı normal şekilde silin, silme senkronlanır.
+
+### ⚖️ Çakışma nasıl çözülür?
+
+- **Son değiştiren kazanır:** her kayıt `syncVersion` (son değişiklik zamanı) taşır.
+  İki cihaz aynı kaydı değiştirirse zamanı yeni olan yazılır, diğeri üzerine yazılır.
+- **Silme vs düzenleme çakışması:** silinen bir kayıt daha sonra başka cihazda
+  düzenlenmişse (düzenleme zamanı > silme zamanı) **düzenleme kazanır** ve kayıt geri gelir;
+  aksi halde silme uygulanır.
+- **Eşit sürüm durumu:** içerik deterministik karşılaştırılır; **tüm cihazlar aynı sonuca
+  varır**, cihazlar arasında kalıcı ayrışma oluşmaz.
+- **"Çakışma çözüldü" sayacı:** senkron ekranındaki bu sayaç, kaç kayıtta mekanizmanın
+  devreye girdiğini gösterir (Android ve iOS'ta ortak davranış).
+- Veri kaybını azaltmak için: önemli değişikliklerden sonra uygulamayı hemen kapatmayın
+  (gönderim ~2 sn içinde otomatik tetiklenir) ve iki cihazda aynı kaydı üst üste
+  düzenlemekten kaçının.
+
+### 📱 Platform farkları (hızlı referans)
+
+| Konu | Android | iOS |
+|------|---------|-----|
+| Uzak değişiklikleri alma | Canlı dinleme (anında) | 30 sn polling (uygulama açıkken) |
+| Değişiklik gönderimi | ~2 sn debounce ile anında | Her kayıttan ~2 sn sonra |
+| Onay beklerken | ValueEventListener ile otomatik | 30 sn'de bir kontrol, onay gelince otomatik |
+| Firebase bağlantısı | `google-services.json` (SDK) | Senkronizasyon → Firebase Ayarları (API Key + URL) |
+| Davet paylaşımı | WhatsApp / QR / kopyala | WhatsApp / QR / kopyala |
 
 ---
 

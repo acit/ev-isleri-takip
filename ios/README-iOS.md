@@ -79,6 +79,50 @@ Teknik notlar:
   periyodik kontrol edilir, onay gelince senkron otomatik başlar. Senkronizasyon
   ekranındaki "Uzak değişiklikleri canlı izle" anahtarıyla kapatılabilir.
 
+### ❓ iOS Senkronizasyon SSS
+
+<details>
+<summary><b>Bağlanmıyor / "Hata: permission denied"</b></summary>
+
+- Firebase Ayarları'ndaki **Web API Key** ve **Database URL** doğru mu? (URL `https://` ile başlamalı)
+- `firebase/database.rules.json` Firebase Console'da **Publish** edildi mi?
+- Aile hesabıyla giriş yapıldı mı ve UID **onaylı üye** mi? (Katılım isteği → onay akışı)
+
+</details>
+
+<details>
+<summary><b>Katılım onayı gelmiyor</b></summary>
+
+- Onaylayan cihazda uygulama **açık** olmalı: iOS istekleri 30 sn'de bir çeker.
+- "Aile şifresi eşleşmiyor" görünüyorsa şifre yanlış girilmiştir; onay butonu şifre
+  eşleşince aktifleşir.
+- Onaydan sonra kendi cihazınızda en geç 30 sn içinde üyelik otomatik açılır;
+  beklemek istemezseniz Senkronizasyon ekranını kapatıp açın.
+
+</details>
+
+<details>
+<summary><b>Veri görünmüyor / gecikiyor</b></summary>
+
+- Uzak değişiklikler **30 sn'ye kadar** gecikebilir (polling); anında görmek için
+  "Şimdi Senkronize Et" basın veya ekranı yenileyin.
+- İki cihazın Grup ID'leri birebir aynı mı?
+- "Uzak değişiklikleri canlı izle" kapalıysa veriler yalnızca elle senkronda gelir.
+- Silinen kayıtlar mezar taşı mantığıyla **tüm cihazlarda** silinir (normal davranış).
+
+</details>
+
+<details>
+<summary><b>Çakışmada hangi veri kazanır?</b></summary>
+
+**Son değiştiren kazanır** (`syncVersion`). Silinen ama sonradan düzenlenen kayıtta
+düzenleme zamanı yeniyse kayıt geri gelir. Eşit sürümde deterministik karşılaştırma
+yapılır; Android ve iOS daima aynı sonuca varır, cihazlar ayrışmaz.
+
+</details>
+
+> Tam SSS ve Android/iOS karşılaştırma tablosu için: [FIREBASE-SETUP-GUIDE.md → Sorun Giderme / SSS](../FIREBASE-SETUP-GUIDE.md#%EF%B8%8F-sorun-giderme--sss)
+
 ## 🚀 Çalıştırma
 
 ### Ön Koşullar
