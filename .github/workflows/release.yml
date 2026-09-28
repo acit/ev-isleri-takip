@@ -134,6 +134,9 @@ jobs:
       - name: Build for Device (Release) — No Code Sign
         run: |
           cd ios
+          set -o pipefail
+          # Ham xcodebuild çıktısı dosyaya yazılır; konsola xcpretty özeti gider.
+          # Derleme başarısız olsa bile raw log artifact'e eklenir (Upload iOS Logs).
           xcodebuild \
             -project AileTakip.xcodeproj \
             -scheme AileTakip \
@@ -143,7 +146,21 @@ jobs:
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
-            | xcpretty
+            2>&1 | tee build/xcodebuild-device.log | xcpretty || true
+          BUILD_RESULT=${PIPESTATUS[0]:-0}
+          echo "xcodebuild exit code: $BUILD_RESULT" | tee -a build/xcodebuild-device.log
+          if [ "$BUILD_RESULT" -ne 0 ]; then
+            echo "::error::xcodebuild başarısız (exit $BUILD_RESULT) — detay: build/xcodebuild-device.log artifact'i"
+            exit $BUILD_RESULT
+          fi
+          # Ürün gerçekten üretildi mi?
+          PRODUCT_BIN="build/DerivedData/Build/Products/Release-iphoneos/AileTakip/AileTakip"
+          if [ ! -f "$PRODUCT_BIN" ]; then
+            echo "::error::Beklenen ürün bulunamadı: $PRODUCT_BIN"
+            find build/DerivedData/Build/Products -maxdepth 3 -type d | tee -a build/xcodebuild-device.log
+            exit 1
+          fi
+          echo "Ürün üretildi: $PRODUCT_BIN ($(du -sh "$PRODUCT_BIN" | cut -f1))"
 
       - name: Get iOS version
         id: ios_version
@@ -156,45 +173,36 @@ jobs:
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
+          exec 2> >(tee build/ipa-export-stderr.log >&2)
           echo "=== Derleme ürün dizinleri ==="
-          ls -la build/DerivedData/Build/Products/ 2>/dev/null || true
+          ls -la build/DerivedData/Build/Products/Release-iphoneos/ 2>/dev/null || true
           echo "=== Tüm AileTakip.app kopyaları ==="
           find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null
-          echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü) ==="
+          echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü tercih) ==="
           APP_PATH=""
           while IFS= read -r candidate; do
-            echo "  aday: $candidate"
             if [ -f "$candidate/AileTakip" ]; then
-              echo "    -> binary VAR"
               case "$candidate" in
-                *Release*|*release*) APP_PATH="$candidate"; break ;;
+                *Release*) APP_PATH="$candidate"; break ;;
               esac
-              if [ -z "$APP_PATH" ]; then APP_PATH="$candidate"; fi
-            else
-              echo "    -> binary YOK (içerik):"
-              ls "$candidate" | head -5 || true
+              [ -z "$APP_PATH" ] && APP_PATH="$candidate"
             fi
           done < <(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null)
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: Binary içeren AileTakip.app bulunamadı"
+            echo "::error::Binary içeren AileTakip.app bulunamadı — tüm .app listesi artifact log'unda"
             exit 1
           fi
-          
           echo "Found app: $APP_PATH ($(du -sh "$APP_PATH" | cut -f1))"
           rm -rf build/IPA
           mkdir -p build/IPA/Payload
-          cp -r "$APP_PATH" build/IPA/Payload/
-          
-          cd build/IPA
-          zip -qry ../../AileTakip-v${VERSION}.ipa Payload/
-          cd ../..
-          
+          cp -R "$APP_PATH" build/IPA/Payload/
+          ( cd build/IPA && zip -qry "../../AileTakip-v${VERSION}.ipa" Payload/ )
           echo "=== IPA Created ==="
-          ls -lh AileTakip-v${VERSION}.ipa
-          # Son kontrol: IPA en az 1 MB olmalı (boş zip tespiti)
-          SIZE=$(stat -f%z AileTakip-v${VERSION}.ipa 2>/dev/null || stat -c%s AileTakip-v${VERSION}.ipa)
+          ls -lh "AileTakip-v${VERSION}.ipa"
+          SIZE=$(stat -f%z "AileTakip-v${VERSION}.ipa" 2>/dev/null || stat -c%s "AileTakip-v${VERSION}.ipa")
+          echo "IPA boyutu: $SIZE bytes"
           if [ "$SIZE" -lt 1000000 ]; then
-            echo "ERROR: IPA suspiciously small ($SIZE bytes)"
+            echo "::error::IPA şüpheli derecede küçük ($SIZE bytes)"
             exit 1
           fi
 
@@ -204,6 +212,21 @@ jobs:
           name: ios-ipa
           path: ios/AileTakip-v${{ steps.ios_version.outputs.version }}.ipa
           retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload iOS Logs (her koşulda — teşhis için)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-build-logs
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ios/build/xcodebuild-device.log
+            ios/build/ipa-export-stderr.log
+            ios/build/DerivedData/Build/Products/**/AileTakip.app/Info.plist
+            ios/build/DerivedData/Logs/Build/*.xcactivitylog
+            ios/build/DerivedData/info.plist
 
   # ============================================
   # CREATE GITHUB RELEASE
