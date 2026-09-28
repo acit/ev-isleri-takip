@@ -4,6 +4,20 @@ Aile Takip uygulamasının tüm değişiklikleri.
 
 ---
 
+## [3.7.5] - 2026-09-29
+
+### 📷 iOS QR Tarama Sağlamlaştırma + Test Altyapısı
+- **Kamera izin akışı düzeltildi** — simülatörde/izinsiz cihazda boş ekran yerine
+  açıklayıcı ekran: neden mesajı + (izin durumunda) "Ayarları Aç" + davet kodu
+  **elle girme** bölümü; Ayarlar'dan dönüldüğünde izin otomatik yeniden değerlendirilir
+- **QRScannerView neden bildirir** — kamera donanımı yok / izin reddi ayrımı yapılır
+- **AileTakipTests target eklendi** — `FamilyInviteCodec` için 11 birim test:
+  kompakt biçim, WhatsApp metnine gömülü kod, whitespace toleransı, bozuk girdiler
+- **make-release.sh** — sürüm bump + tag + release izleme + asset doğrulamayı
+  tek komutta birleştiren otomasyon scripti
+
+---
+
 ## [3.7.4] - 2026-09-27
 
 > iOS eklentisi: Senkronizasyon ekranına **QR ile katılım** — kamera ile davet kodu
