@@ -159,20 +159,24 @@ jobs:
           echo "=== Derleme ürün dizinleri ==="
           ls -la build/DerivedData/Build/Products/ 2>/dev/null || true
           echo "=== Tüm AileTakip.app kopyaları ==="
-          find build/DerivedData -maxdepth 6 -name "AileTakip.app" -type d 2>/dev/null
+          find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null
           echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü) ==="
           APP_PATH=""
-          for candidate in $(find build/DerivedData -maxdepth 6 -name "AileTakip.app" -type d 2>/dev/null); do
+          while IFS= read -r candidate; do
+            echo "  aday: $candidate"
             if [ -f "$candidate/AileTakip" ]; then
+              echo "    -> binary VAR"
               case "$candidate" in
-                *Release*) APP_PATH="$candidate"; break ;;
+                *Release*|*release*) APP_PATH="$candidate"; break ;;
               esac
               if [ -z "$APP_PATH" ]; then APP_PATH="$candidate"; fi
+            else
+              echo "    -> binary YOK (içerik):"
+              ls "$candidate" | head -5 || true
             fi
-          done
+          done < <(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null)
           if [ -z "$APP_PATH" ]; then
             echo "ERROR: Binary içeren AileTakip.app bulunamadı"
-            find build/DerivedData -name "*.app" -type d 2>/dev/null | while read d; do echo "-- $d"; ls -la "$d" | head -8; done
             exit 1
           fi
           
