@@ -467,7 +467,7 @@ class MainViewModel: ObservableObject {
 
     /// Otomatik senkron açıkken her yerel değişikliği 2 saniye içinde gruba gönderir
     /// (Android `AutoSyncEngine` debounce davranışı).
-    private var pendingSyncTask: Task<Void, Never>?
+    private var pendingSyncTask: SyncTask<Void, Never>?
     @Published var autoSyncEnabled: Bool = UserDefaults.standard.object(forKey: "autoSyncEnabled") as? Bool ?? true {
         didSet { UserDefaults.standard.set(autoSyncEnabled, forKey: "autoSyncEnabled") }
     }
@@ -475,9 +475,9 @@ class MainViewModel: ObservableObject {
     private func scheduleSyncPush() {
         guard autoSyncEnabled, syncService.membership.isMember else { return }
         pendingSyncTask?.cancel()
-        pendingSyncTask = Task { [weak self] in
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
-            guard !Task.isCancelled else { return }
+        pendingSyncTask = SyncTask { [weak self] in
+            try? await SyncTask.sleep(nanoseconds: 2_000_000_000)
+            guard !SyncTask.isCancelled else { return }
             guard let self else { return }
             for table in SyncTables.all {
                 await self.syncService.syncTable(table)
@@ -493,7 +493,7 @@ class MainViewModel: ObservableObject {
             syncService.setGroup(savedGroup)
         }
         if syncService.isSignedIn, currentGroupId.isEmpty == false {
-            Task { @MainActor in
+            SyncTask { @MainActor in
                 _ = await syncService.refreshMembership()
             }
         }

@@ -2,6 +2,10 @@ import Foundation
 import SwiftData
 
 /// Tek bir senkron satırı: kimlik + gönderilebilir içerik (Android `SyncRow` paritesi).
+/// Swift concurrency `Task` tipiyle karışmaması için module-wide `typealias`.
+/// (Modülde `final class Task` SwiftData modeli var; onun init'i string kabul ediyor.)
+typealias SyncTask = Swift.Task
+
 struct SyncRow {
     let id: String
     let content: [String: Any]

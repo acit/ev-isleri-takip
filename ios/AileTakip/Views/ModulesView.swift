@@ -735,7 +735,7 @@ struct SyncSettingsView: View {
     private func run(_ operation: @escaping (FirebaseSyncService) async -> Void) {
         busy = true
         statusMessage = ""
-        Task { @MainActor in
+        SyncTask { @MainActor in
             await operation(sync)
             busy = false
         }

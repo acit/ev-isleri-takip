@@ -449,14 +449,14 @@ final class FirebaseSyncService: ObservableObject {
     /// Uygulama açıkken uzak değişiklikleri belirli aralıklla çeker.
     /// Android'deki ValueEventListener'ın REST karşılığıdır: SDK canlı soket
     /// dinleyemediği için polling kullanır (varsayılan 30 saniye).
-    private var pollingTask: Task<Void, Never>?
+    private var pollingTask: SyncTask<Void, Never>?
 
     func startLivePolling(interval: TimeInterval = 30) {
         guard pollingTask == nil else { return }  // çift başlatma koruması
-        pollingTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-                guard !Task.isCancelled else { break }
+        pollingTask = SyncTask { [weak self] in
+            while !SyncTask.isCancelled {
+                try? await SyncTask.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !SyncTask.isCancelled else { break }
                 await self?.pollTick()
             }
         }
