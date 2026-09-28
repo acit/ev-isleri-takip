@@ -166,8 +166,8 @@ jobs:
             echo "::error::xcodebuild başarısız (exit $BUILD_RESULT) — detay: build/xcodebuild-device.log artifact'i"
             exit $BUILD_RESULT
           fi
-          # Ürün gerçekten üretildi mi?
-          PRODUCT_BIN="build/DerivedData/Build/Products/Release-iphoneos/AileTakip/AileTakip"
+          # Ürün gerçekten üretildi mi? (binary .app paketinin içinde)
+          PRODUCT_BIN="build/DerivedData/Build/Products/Release-iphoneos/AileTakip.app/AileTakip"
           if [ ! -f "$PRODUCT_BIN" ]; then
             echo "::error::Beklenen ürün bulunamadı: $PRODUCT_BIN"
             find build/DerivedData/Build/Products -maxdepth 3 -type d | tee -a build/xcodebuild-device.log
