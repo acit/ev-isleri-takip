@@ -135,6 +135,9 @@ jobs:
         run: |
           cd ios
           set -o pipefail
+          # macOS-15 runner'ında actool bazen simulator runtime bulamıyor (runner-images
+          # #11683/#12758); iOS platform bileşenini garantiye al.
+          xcodebuild -downloadPlatform iOS 2>&1 | tail -3 || true
           # Ham xcodebuild çıktısı dosyaya yazılır; konsola xcpretty özeti gider.
           # Derleme başarısız olsa bile raw log artifact'e eklenir (Upload iOS Logs).
           xcodebuild \
