@@ -151,10 +151,13 @@ jobs:
           # (zaten güncelse hızlı döner; uzun sürmesin diye 120 sn ile sınırla)
           timeout 120 xcodebuild -downloadPlatform iOS 2>&1 | tail -3 || echo "downloadPlatform skip ($?)" | tee -a "$LOG"
           xcrun simctl runtime list 2>&1 | tee -a "$LOG" || true
-          # Derleme: ham çıktı dosyaya; özet konsola
+          # Derleme: ham çıktı dosyaya; özet konsola.
+          # NOT: -scheme yerine -target kullanılıyor — pbxproj'a sonradan eklenen
+          # AileTakipTests target'ı otomatik scheme derleme grafiğine girmesin
+          # (test target yalnızca ios-build.yml'deki simulator CI'da derlenir).
           xcodebuild \
             -project AileTakip.xcodeproj \
-            -scheme AileTakip \
+            -target AileTakip \
             -sdk iphoneos \
             -configuration Release \
             -derivedDataPath build/DerivedData \
