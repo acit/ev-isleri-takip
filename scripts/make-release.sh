@@ -112,6 +112,7 @@ info "Sürüm dosyaları güncelleniyor..."
 
 python - "$NEW_VERSION" "$NEW_CODE" <<'PYEOF'
 import io, re, sys
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 version, code = sys.argv[1], sys.argv[2]
 
 # --- app/build.gradle.kts ---
@@ -136,6 +137,7 @@ PYEOF
 TODAY="$(date +%Y-%m-%d)"
 python - "$NEW_VERSION" "$TODAY" <<'PYEOF'
 import io, sys
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 version, today = sys.argv[1], sys.argv[2]
 p = 'CHANGELOG.md'
 s = io.open(p, encoding='utf-8').read()
@@ -197,6 +199,7 @@ REPO="$(git remote get-url origin | sed 's/.*github.com[:/]//;s/\.git$//')"
 sleep 10
 python - "$REPO" "$TAG" <<'PYEOF'
 import json, io, sys, urllib.request
+sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 repo, tag = sys.argv[1], sys.argv[2]
 with urllib.request.urlopen(f'https://api.github.com/repos/{repo}/releases/tags/{tag}') as r:
     rel = json.load(r)

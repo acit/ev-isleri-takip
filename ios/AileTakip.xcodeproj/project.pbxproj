@@ -331,8 +331,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.7.4;
-				CURRENT_PROJECT_VERSION = 21;
+				MARKETING_VERSION = 3.7.5;
+				CURRENT_PROJECT_VERSION = 22;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -361,8 +361,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 3.7.4;
-				CURRENT_PROJECT_VERSION = 21;
+				MARKETING_VERSION = 3.7.5;
+				CURRENT_PROJECT_VERSION = 22;
 				PRODUCT_BUNDLE_IDENTIFIER = com.aile.takip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
