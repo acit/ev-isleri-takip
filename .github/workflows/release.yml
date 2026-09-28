@@ -74,6 +74,8 @@ jobs:
         run: |
           VERSION=${{ steps.version.outputs.version }}
           # Find release APK (may be app-release.apk or app-release-unsigned.apk)
+          # İmza secret'ı (KEYSTORE_BASE64) yoksa app-release-unsigned.apk üretilir;
+          # yine de release APK olarak yayınlanır (kullanıcı imzasız APK'yı da kurabilir).
           RELEASE_APK=$(find app/build/outputs/apk/release -name "app-release*.apk" | head -1)
           if [ -n "$RELEASE_APK" ]; then
             cp "$RELEASE_APK" "AileTakip-v${VERSION}-release.apk"
@@ -87,12 +89,12 @@ jobs:
           echo "✅ APK files renamed"
 
       - name: Upload Release APK
-        if: ${{ env.HAS_KEYSTORE == 'true' }}
         uses: actions/upload-artifact@v4
         with:
           name: android-release-apk
           path: AileTakip-v${{ steps.version.outputs.version }}-release.apk
           retention-days: 30
+          if-no-files-found: warn
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -154,28 +156,40 @@ jobs:
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
-          echo "=== Finding AileTakip.app ==="
-          APP_PATH=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null | head -1)
+          echo "=== Finding AileTakip.app (yalnızca gerçek ürün, Intermediates değil) ==="
+          APP_PATH=$(find build/DerivedData/Build/Products -name "AileTakip.app" -type d 2>/dev/null | head -1)
           
           if [ -z "$APP_PATH" ]; then
-            echo "ERROR: AileTakip.app not found in build/DerivedData"
+            echo "ERROR: AileTakip.app not found in build/DerivedData/Build/Products"
             echo "=== Listing .app directories ==="
             find build/DerivedData -name "*.app" -type d 2>/dev/null || echo "No .app found"
-            echo "=== Listing build directory structure ==="
-            find build -maxdepth 4 -type d 2>/dev/null || echo "No build dir"
             exit 1
           fi
           
-          echo "Found app: $APP_PATH"
+          # Sağlık kontrolü: ikili dosya gerçekten pakette olmalı (boş .app tuzağına düşme)
+          if [ ! -f "$APP_PATH/AileTakip" ]; then
+            echo "ERROR: binary missing — .app is empty"
+            ls -la "$APP_PATH" || true
+            exit 1
+          fi
+          
+          echo "Found app: $APP_PATH ($(du -sh "$APP_PATH" | cut -f1))"
+          rm -rf build/IPA
           mkdir -p build/IPA/Payload
           cp -r "$APP_PATH" build/IPA/Payload/
           
           cd build/IPA
-          zip -r ../../AileTakip-v${VERSION}.ipa Payload/
+          zip -qry ../../AileTakip-v${VERSION}.ipa Payload/
           cd ../..
           
           echo "=== IPA Created ==="
           ls -lh AileTakip-v${VERSION}.ipa
+          # Son kontrol: IPA en az 1 MB olmalı (boş zip tespiti)
+          SIZE=$(stat -f%z AileTakip-v${VERSION}.ipa 2>/dev/null || stat -c%s AileTakip-v${VERSION}.ipa)
+          if [ "$SIZE" -lt 1000000 ]; then
+            echo "ERROR: IPA suspiciously small ($SIZE bytes)"
+            exit 1
+          fi
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
@@ -244,12 +258,12 @@ jobs:
             2. IPA dosyasını uygulamaya sürükleyin
             3. Apple ID ile giriş yapın (AltStore) veya yükleyin (TrollStore)
             
-            ### 📋 Yenilikler
-            - QR/Barkod tarama
-            - Örnek veriler (Yılmaz Ailesi)
-            - Özel VectorDrawable ikon
-            - Performans optimizasyonları
-            - iOS uygulaması (SwiftUI)
+            ### 📋 Yenilikler (3.7.4)
+            - Mesajlar kronolojik sıralandı (yeni en altta)
+            - WhatsApp ile aile daveti (Android + iOS)
+            - iOS: Firebase senkronizasyonu (Android paritesi) + QR ile katılım
+            - iOS: 30 sn canlı izleme (uzak değişiklikler otomatik gelir)
+            - Haftalık market listesi + fiş OCR + akıllı alışveriş önerisi
             
             ---
             🤖 Otomatik olarak GitHub Actions ile oluşturuldu.
