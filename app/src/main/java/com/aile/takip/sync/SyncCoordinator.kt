@@ -15,6 +15,13 @@ class SyncCoordinator(private val repo: FamilyRepository) {
 
     private val todayStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
 
+    private companion object {
+        /** Görev hatırlatıcısı: son tarihten 1 gün önce. */
+        const val REMINDER_LEAD_TASK_MS = 24 * 60 * 60 * 1000L
+        /** Fatura hatırlatıcısı: son ödemeden 2 gün önce. */
+        const val REMINDER_LEAD_INVOICE_MS = 2 * 24 * 60 * 60 * 1000L
+    }
+
     // ============================================
     // 1. TASK ↔ REMINDER SYNC
     // ============================================
@@ -30,18 +37,53 @@ class SyncCoordinator(private val repo: FamilyRepository) {
                     Reminder(
                         title = "Görev: ${task.title}",
                         description = task.description,
-                        reminderTime = dueTime - (24 * 60 * 60 * 1000), // 1 gun oncesinden hatirlat
+                        reminderTime = dueTime - REMINDER_LEAD_TASK_MS, // 1 gun oncesinden hatirlat
                         repeatType = "once",
                         category = "Görev",
                         priority = task.priority,
                         linkedId = task.id,
                         linkedType = "task",
                         createdBy = task.assignee,
-                        nextFireAt = dueTime - (24 * 60 * 60 * 1000)
+                        nextFireAt = dueTime - REMINDER_LEAD_TASK_MS
                     )
                 )
             }
         }
+    }
+
+    /**
+     * Görev güncellenince bağlı hatırlatıcıyı da günceller.
+     * Başlık/açıklama/tarih değişimi hatırlatıcıya yansır; tamamlandıysa iptal edilir.
+     */
+    suspend fun onTaskUpdated(task: Task) {
+        val reminders = repo.allReminders.first()
+        reminders.filter { it.linkedId == task.id && it.linkedType == "task" && !it.isCompleted }
+            .forEach { reminder ->
+                if (task.status == "tamamlanan") {
+                    repo.upsertReminder(reminder.copy(isCompleted = true))
+                } else {
+                    val dueTime = parseDateToTimestamp(task.dueDate)
+                    val fireAt = dueTime - REMINDER_LEAD_TASK_MS
+                    repo.upsertReminder(
+                        reminder.copy(
+                            title = "Görev: ${task.title}",
+                            description = task.description,
+                            reminderTime = fireAt,
+                            nextFireAt = fireAt,
+                            priority = task.priority
+                        )
+                    )
+                }
+            }
+    }
+
+    /**
+     * Görev silinince bağlı hatırlatıcıları da siler.
+     */
+    suspend fun onTaskDeleted(task: Task) {
+        val reminders = repo.allReminders.first()
+        reminders.filter { it.linkedId == task.id && it.linkedType == "task" }
+            .forEach { reminder -> repo.deleteReminder(reminder) }
     }
 
     /**
@@ -97,6 +139,33 @@ class SyncCoordinator(private val repo: FamilyRepository) {
     }
 
     /**
+     * Envanter kaydı düşük stok eşiğine düştüğünde otomatik hatırlatıcı oluşturur.
+     * Aynı envanter için aktif hatırlatıcı varsa tekrar oluşturmaz.
+     */
+    suspend fun onInventoryLowStock(item: InventoryItem) {
+        if (item.minStock <= 0 || item.quantity > item.minStock) return
+        val reminders = repo.allReminders.first()
+        val alreadyActive = reminders.any {
+            it.linkedId == item.id && it.linkedType == "inventory" && !it.isCompleted
+        }
+        if (alreadyActive) return
+        repo.upsertReminder(
+            Reminder(
+                title = "Stok az: ${item.name}",
+                description = "Kalan: ${item.quantity} ${item.unit} • Eşik: ${item.minStock} ${item.unit} — alışveriş listesine eklendi",
+                reminderTime = System.currentTimeMillis(),
+                category = "Stok",
+                priority = "orta",
+                linkedId = item.id,
+                linkedType = "inventory",
+                nextFireAt = System.currentTimeMillis()
+            )
+        )
+        // Düşük stok ürünü alışveriş listesine de düşür (varsa tekrar eklemez)
+        autoAddLowStockToShopping()
+    }
+
+    /**
      * Check inventory and suggest low-stock items for shopping list.
      */
     suspend fun getLowStockSuggestions(): List<String> {
@@ -133,52 +202,118 @@ class SyncCoordinator(private val repo: FamilyRepository) {
 
     /**
      * Check if meal plan ingredients are available in inventory.
+     * Gerçek eşleştirme: Türkçe normalizasyon + karşılıklı kelime kapsaması ([IngredientMatcher]).
      */
     suspend fun checkMealPlanIngredients(dish: String): List<MissingIngredient> {
         val inventory = repo.inventory.first()
-        val missing = mutableListOf<MissingIngredient>()
+        val invPairs = inventory.map { it.name to it.quantity }
+        return com.aile.takip.utils.IngredientMatcher.missingFor(dish, invPairs)
+            .map { MissingIngredient(name = it.requirement.name, needed = it.requirement.needed, inStock = it.inStock) }
+    }
 
-        // Simple ingredient matching (in real app, use ingredient database)
-        val requiredIngredients = parseDishIngredients(dish)
+    /**
+     * Tüm yemek planı için eksik malzeme özetini üretir.
+     *
+     * Aynı malzeme birden fazla yemekte gerekiyorsa gereksinimler TOPLANIR;
+     * envanterdeki toplam stok bir kez düşülür. Sonuç yemek başına gerekçe içerir
+     * ("Hangi yemek için lazım?") ve UI'da tekil/toplu ekleme için kullanılır.
+     */
+    suspend fun weeklyMissingIngredients(): List<AggregateMissing> {
+        val plans = repo.mealPlans.first()
+        if (plans.isEmpty()) return emptyList()
+        val inventory = repo.inventory.first()
+        val invPairs = inventory.map { it.name to it.quantity }.toMutableList()
 
-        requiredIngredients.forEach { (ingredient, qty) ->
-            val inStock = inventory.find {
-                it.name.lowercase().contains(ingredient.lowercase())
-            }
-            if (inStock == null || inStock.quantity < qty) {
-                missing.add(
-                    MissingIngredient(
-                        name = ingredient,
-                        needed = qty,
-                        inStock = inStock?.quantity ?: 0
-                    )
-                )
+        // malzeme -> (toplam gereken, hangi yemekler)
+        val needed = LinkedHashMap<String, RequirementAccumulator>()
+
+        for (plan in plans) {
+            val reqs = com.aile.takip.utils.IngredientMatcher.extractIngredients(plan.dish)
+            for (req in reqs) {
+                val entry = needed.getOrPut(req.name) { RequirementAccumulator() }
+                entry.totalNeeded += req.needed
+                if (plan.dish !in entry.dishes) entry.dishes.add(plan.dish)
             }
         }
 
-        return missing
+        return needed.map { (name, acc) ->
+            val stock = com.aile.takip.utils.IngredientMatcher.matchWithInventory(
+                listOf(com.aile.takip.utils.IngredientMatcher.Requirement(name, acc.totalNeeded)),
+                invPairs
+            ).firstOrNull()
+            AggregateMissing(
+                name = name,
+                needed = acc.totalNeeded,
+                inStock = stock?.inStock ?: 0,
+                usedByDishes = acc.dishes.toList()
+            )
+        }.filter { it.missing > 0 }
+            .sortedWith(compareByDescending<AggregateMissing> { it.missing }.thenBy { it.name })
+    }
+
+    /** Map getOrPut için biriktirici. */
+    private class RequirementAccumulator {
+        var totalNeeded: Int = 0
+        val dishes: MutableList<String> = mutableListOf()
+    }
+
+    /**
+     * Bu haftanın market listesini üretir (eksiklerden) ve DataStore'a kaydeder;
+     * önceki haftayla karşılaştırma özetini döner.
+     */
+    suspend fun generateWeeklyMarketList(
+        persistence: MarketListPersistence
+    ): com.aile.takip.utils.MarketListStore.WeekDiff {
+        val missing = weeklyMissingIngredients()
+        val now = System.currentTimeMillis()
+        val weekKey = com.aile.takip.utils.MarketListStore.currentWeekKey(now)
+
+        val current = com.aile.takip.utils.MarketListStore.buildList(
+            weekKey = weekKey,
+            now = now,
+            exhausted = missing.map { Triple(it.name, it.missing, it.usedByDishes) }
+        )
+        persistence.save(current)
+
+        val previous = persistence.get(
+            com.aile.takip.utils.MarketListStore.previousWeekKey(now)
+        )
+        return com.aile.takip.utils.MarketListStore.compare(current, previous)
+    }
+
+    /**
+     * Eksik malzemeleri alışveriş listesine ekler (zaten listede olanlar atlanır).
+     * [names] boşsa TÜM eksikler eklenir. Eklenen malzeme sayısını döner.
+     */
+    suspend fun addMissingToShopping(names: Collection<String> = emptyList()): Int {
+        val missing = weeklyMissingIngredients()
+            .filter { names.isEmpty() || it.name in names }
+        val shopping = repo.shoppingItems.first()
+        val existing = shopping.map { it.name.lowercase() }.toSet()
+
+        var added = 0
+        for (m in missing) {
+            if (m.name.lowercase() in existing) continue
+            repo.upsertShopping(
+                ShoppingItem(
+                    name = m.name,
+                    quantity = m.missing,
+                    category = "Yemek İçin",
+                    addedBy = "Akıllı Öneri"
+                )
+            )
+            added++
+        }
+        return added
     }
 
     /**
      * When a meal is planned, check inventory and add missing items to shopping.
+     * (Otomatik eklenmez; yalnızca hatırlatılır — kullanıcı MealPlanScreen'den
+     * tekil veya toplu ekler. Bu, istenmeyen liste kirliliğini önler.)
      */
     suspend fun onMealPlanCreated(mealPlan: MealPlan) {
-        val missing = checkMealPlanIngredients(mealPlan.dish)
-        val shopping = repo.shoppingItems.first()
-        val shoppingNames = shopping.map { it.name.lowercase() }.toSet()
-
-        missing.forEach { ingredient ->
-            if (ingredient.name.lowercase() !in shoppingNames) {
-                repo.upsertShopping(
-                    ShoppingItem(
-                        name = ingredient.name,
-                        quantity = ingredient.needed - ingredient.inStock,
-                        category = "Yemek İçin",
-                        addedBy = "Yemek Planı"
-                    )
-                )
-            }
-        }
+        // bilinçli olarak boş: öneriler kullanıcı onayıyla eklenir
     }
 
     /**
@@ -283,12 +418,46 @@ class SyncCoordinator(private val repo: FamilyRepository) {
     // ============================================
 
     /**
+     * Fatura güncellenince bağlı hatırlatıcıyı yeniler; ödendiyse iptal eder.
+     */
+    suspend fun onInvoiceUpdated(invoice: Invoice) {
+        val reminders = repo.allReminders.first()
+        reminders.filter { it.linkedId == invoice.id && it.linkedType == "invoice" && !it.isCompleted }
+            .forEach { reminder ->
+                if (invoice.status == "paid") {
+                    repo.upsertReminder(reminder.copy(isCompleted = true))
+                } else {
+                    val dueTime = parseDateToTimestamp(invoice.dueDate)
+                    val fireAt = dueTime - REMINDER_LEAD_INVOICE_MS
+                    repo.upsertReminder(
+                        reminder.copy(
+                            title = "Fatura Öde: ${invoice.title}",
+                            description = "${invoice.amount} TL - ${invoice.category}",
+                            reminderTime = fireAt,
+                            nextFireAt = fireAt,
+                            priority = "yüksek"
+                        )
+                    )
+                }
+            }
+    }
+
+    /**
+     * Fatura silinince bağlı hatırlatıcıları siler.
+     */
+    suspend fun onInvoiceDeleted(invoice: Invoice) {
+        val reminders = repo.allReminders.first()
+        reminders.filter { it.linkedId == invoice.id && it.linkedType == "invoice" }
+            .forEach { reminder -> repo.deleteReminder(reminder) }
+    }
+
+    /**
      * When an invoice is created, optionally create a task for payment.
      */
     suspend fun onInvoiceCreated(invoice: Invoice) {
         if (invoice.dueDate.isNotEmpty() && invoice.status == "pending") {
             val dueTime = parseDateToTimestamp(invoice.dueDate)
-            val reminderTime = dueTime - (2 * 24 * 60 * 60 * 1000) // 2 gun oncesinden
+            val reminderTime = dueTime - REMINDER_LEAD_INVOICE_MS
 
             if (reminderTime > System.currentTimeMillis()) {
                 repo.upsertReminder(
@@ -347,36 +516,6 @@ class SyncCoordinator(private val repo: FamilyRepository) {
             System.currentTimeMillis()
         }
     }
-
-    private fun parseDishIngredients(dish: String): List<Pair<String, Int>> {
-        // Simple ingredient parsing - in real app, use a recipe database
-        val ingredients = mutableListOf<Pair<String, Int>>()
-
-        val commonIngredients = mapOf(
-            "makarna" to listOf("Makarna", "Zeytinyağı", "Tuz"),
-            "pilav" to listOf("Pirinç", "Tereyağı", "Tuz"),
-            "salata" to listOf("Marul", "Domates", "Salatalık", "Zeytinyağı"),
-            "çorba" to listOf("Tavuk", "Soğan", "Havuç", "Tuz"),
-            "karnıyarık" to listOf("Patlıcan", "Kıyma", "Soğan", "Domates"),
-            "izmir köfte" to listOf("Kıyma", "Patates", "Soğan", "Domates"),
-            "tavuk" to listOf("Tavuk", "Tuz", "Baharat"),
-            "balık" to listOf("Balık", "Limon", "Tuz"),
-            "omlet" to listOf("Yumurta", "Peynir", "Maydanoz"),
-            "pankek" to listOf("Un", "Yumurta", "Süt", "Şeker")
-        )
-
-        commonIngredients.forEach { (key, items) ->
-            if (dish.lowercase().contains(key)) {
-                items.forEach { item ->
-                    ingredients.add(item to 1)
-                }
-            }
-        }
-
-        return ingredients.ifEmpty {
-            listOf("Malzeme" to 1)
-        }
-    }
 }
 
 // ============================================
@@ -418,3 +557,16 @@ data class LinkedRecords(
     val reminders: List<Reminder>,
     val invoices: List<Invoice>
 )
+
+/**
+ * Haftalık eksik malzeme özeti: birden fazla yemekte gereken malzemeler toplanır,
+ * envanter stokları bir kez düşülür ve hangi yemekler için gerektiği saklanır.
+ */
+data class AggregateMissing(
+    val name: String,
+    val needed: Int,
+    val inStock: Int,
+    val usedByDishes: List<String>
+) {
+    val missing: Int get() = maxOf(0, needed - inStock)
+}

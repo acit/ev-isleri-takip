@@ -29,7 +29,7 @@ import com.aile.takip.ui.viewmodel.MainViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-val reminderCategories = listOf("Genel", "Görev", "Fatura", "Etkinlik", "Sağlık")
+val reminderCategories = listOf("Genel", "Görev", "Fatura", "Stok", "Etkinlik", "Sağlık")
 val reminderPriorities = listOf("düşük", "orta", "yüksek")
 val repeatTypes = listOf("once", "daily", "weekly", "monthly", "custom")
 val alarmSounds = listOf("default", "alarm", "notification", "ringtone", "urgent")
@@ -51,12 +51,34 @@ fun ReminderScreen(vm: MainViewModel) {
     var showAddDialog by remember { mutableStateOf(false) }
     var editingReminder by remember { mutableStateOf<Reminder?>(null) }
 
+    // Kategori filtresi: null = tümü; otomatik hatırlatıcılar (Görev/Fatura/Stok) için sekmeler
+    var selectedCategory by remember { mutableStateOf<String?>(null) }
+
     val filteredReminders = when (selectedTab) {
         0 -> activeReminders
         1 -> allReminders.filter { it.isCompleted }
         2 -> allReminders
         else -> activeReminders
+    }.let { list ->
+        when (selectedCategory) {
+            null -> list
+            "Genel" -> list.filter { it.category !in listOf("Görev", "Fatura", "Stok") }
+            else -> list.filter { it.category == selectedCategory }
+        }
     }
+
+    // Her sekmedeki kategori sayıları (filtre çipleri için)
+    val baseList = when (selectedTab) {
+        0 -> activeReminders
+        1 -> allReminders.filter { it.isCompleted }
+        else -> allReminders
+    }
+    val categoryChips = listOf(
+        "Görev" to baseList.count { it.category == "Görev" },
+        "Fatura" to baseList.count { it.category == "Fatura" },
+        "Stok" to baseList.count { it.category == "Stok" },
+        "Genel" to baseList.count { it.category == "Genel" || it.category == "Etkinlik" || it.category == "Sağlık" }
+    )
 
     Column(modifier = Modifier.padding(16.dp)) {
         // Header
@@ -95,6 +117,32 @@ fun ReminderScreen(vm: MainViewModel) {
             }
         }
 
+        Spacer(Modifier.height(8.dp))
+
+        // Kategori filtreleri: Görev / Fatura / Stok / Genel (+Tümü)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            FilterChip(
+                selected = selectedCategory == null,
+                onClick = { selectedCategory = null },
+                label = { Text("Tümü", style = MaterialTheme.typography.labelMedium) }
+            )
+            categoryChips.forEach { (cat, count) ->
+                FilterChip(
+                    selected = selectedCategory == cat,
+                    onClick = { selectedCategory = if (selectedCategory == cat) null else cat },
+                    label = {
+                        Text(
+                            if (count > 0) "$cat ($count)" else cat,
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                    }
+                )
+            }
+        }
+
         Spacer(Modifier.height(12.dp))
 
         // Reminders List
@@ -107,9 +155,10 @@ fun ReminderScreen(vm: MainViewModel) {
                     Text("\uD83D\uDD14", fontSize = 48.sp)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        when (selectedTab) {
-                            0 -> "Aktif hatırlatıcı yok"
-                            1 -> "Henüz tamamlanan hatırlatıcı yok"
+                        when {
+                            selectedCategory != null -> "$selectedCategory hatırlatıcısı yok"
+                            selectedTab == 0 -> "Aktif hatırlatıcı yok"
+                            selectedTab == 1 -> "Henüz tamamlanan hatırlatıcı yok"
                             else -> "Hatırlatıcı eklenmemiş"
                         },
                         style = MaterialTheme.typography.titleMedium

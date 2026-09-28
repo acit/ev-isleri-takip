@@ -8,12 +8,20 @@ import coil3.memory.MemoryCache
 import coil3.disk.DiskCache
 import coil3.request.crossfade
 import com.aile.takip.data.db.AppDatabase
+import com.aile.takip.utils.CrashReporter
 import com.aile.takip.utils.BitmapCache
 import com.aile.takip.utils.ComputedCache
 import okio.Path.Companion.toOkioPath
 import java.io.File
 
 class AileTakipApp : Application(), SingletonImageLoader.Factory {
+
+    override fun onCreate() {
+        super.onCreate()
+        // Çökmeleri cihazda dosyaya yaz (teşhis için). İlk iş bu olsun:
+        CrashReporter.install(this)
+    }
+
     val db by lazy {
         try {
             AppDatabase.get(this)

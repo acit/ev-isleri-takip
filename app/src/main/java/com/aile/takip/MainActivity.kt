@@ -99,7 +99,9 @@ fun MainScreen(vm: MainViewModel) {
                 composable("tasks") { TasksScreen(vm) }
                 composable("shopping") { ShoppingScreen(vm = vm, navController = navController) }
                 composable("messages") { MessagesScreen(vm) }
-                composable("profile") { ProfileScreen(vm) }
+                composable("profile") { ProfileScreen(vm, navController) }
+                composable("family-members") { FamilyMembersScreen(vm, navController) }
+                composable("members") { FamilyMembersScreen(vm, navController) }
                 composable("notes") { NotesScreen(vm) }
                 composable("reminders") { ReminderScreen(vm) }
                 composable("health") { HealthDashboardScreen(vm) }

@@ -16,6 +16,8 @@ interface TaskDao {
     suspend fun delete(t: Task)
     @Query("DELETE FROM tasks")
     suspend fun deleteAll()
+    @Query("DELETE FROM tasks WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM tasks")
     suspend fun getAllOnce(): List<Task>
 }
@@ -32,6 +34,8 @@ interface InventoryDao {
     suspend fun delete(item: InventoryItem)
     @Query("DELETE FROM inventory")
     suspend fun deleteAll()
+    @Query("DELETE FROM inventory WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM inventory")
     suspend fun getAllOnce(): List<InventoryItem>
 }
@@ -48,6 +52,8 @@ interface BudgetDao {
     suspend fun delete(b: Budget)
     @Query("DELETE FROM budgets")
     suspend fun deleteAll()
+    @Query("DELETE FROM budgets WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM budgets")
     suspend fun getAllOnce(): List<Budget>
 }
@@ -64,6 +70,8 @@ interface ExpenseDao {
     suspend fun delete(e: Expense)
     @Query("DELETE FROM expenses")
     suspend fun deleteAll()
+    @Query("DELETE FROM expenses WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM expenses")
     suspend fun getAllOnce(): List<Expense>
 }
@@ -80,13 +88,16 @@ interface InvoiceDao {
     suspend fun delete(i: Invoice)
     @Query("DELETE FROM invoices")
     suspend fun deleteAll()
+    @Query("DELETE FROM invoices WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM invoices")
     suspend fun getAllOnce(): List<Invoice>
 }
 
 @Dao
 interface MessageDao {
-    @Query("SELECT * FROM messages ORDER BY createdAt DESC")
+    // Mesajlar kronolojik (eskiden yeniye) döner; sohbet UI'sı en yeni mesajı en altta gösterir
+    @Query("SELECT * FROM messages ORDER BY createdAt ASC")
     fun getAll(): Flow<List<Message>>
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(m: Message)
@@ -96,6 +107,8 @@ interface MessageDao {
     suspend fun delete(m: Message)
     @Query("DELETE FROM messages")
     suspend fun deleteAll()
+    @Query("DELETE FROM messages WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM messages")
     suspend fun getAllOnce(): List<Message>
 }
@@ -112,6 +125,8 @@ interface ShoppingDao {
     suspend fun delete(s: ShoppingItem)
     @Query("DELETE FROM shopping")
     suspend fun deleteAll()
+    @Query("DELETE FROM shopping WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM shopping")
     suspend fun getAllOnce(): List<ShoppingItem>
 }
@@ -128,6 +143,8 @@ interface MemberDao {
     suspend fun delete(m: FamilyMember)
     @Query("DELETE FROM family_members")
     suspend fun deleteAll()
+    @Query("DELETE FROM family_members WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM family_members")
     suspend fun getAllOnce(): List<FamilyMember>
 }
@@ -144,6 +161,8 @@ interface MealPlanDao {
     suspend fun delete(mp: MealPlan)
     @Query("DELETE FROM meal_plans")
     suspend fun deleteAll()
+    @Query("DELETE FROM meal_plans WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM meal_plans")
     suspend fun getAllOnce(): List<MealPlan>
 }
@@ -162,6 +181,8 @@ interface SportsClubDao {
     suspend fun delete(c: SportsClub)
     @Query("DELETE FROM sports_clubs")
     suspend fun deleteAll()
+    @Query("DELETE FROM sports_clubs WHERE id = :id")
+    suspend fun deleteById(id: String)
     @Query("SELECT * FROM sports_clubs")
     suspend fun getAllOnce(): List<SportsClub>
 }
@@ -180,6 +201,8 @@ interface WorkoutLogDao {
     suspend fun delete(w: WorkoutLog)
     @Query("SELECT * FROM workout_logs")
     suspend fun getAllOnce(): List<WorkoutLog>
+    @Query("DELETE FROM workout_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 @Dao
@@ -196,6 +219,8 @@ interface CalorieLogDao {
     suspend fun delete(c: CalorieLog)
     @Query("SELECT * FROM calorie_logs")
     suspend fun getAllOnce(): List<CalorieLog>
+    @Query("DELETE FROM calorie_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 @Dao
@@ -210,6 +235,8 @@ interface MenstrualCycleDao {
     suspend fun delete(c: MenstrualCycle)
     @Query("SELECT * FROM menstrual_cycles")
     suspend fun getAllOnce(): List<MenstrualCycle>
+    @Query("DELETE FROM menstrual_cycles WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 @Dao
@@ -254,6 +281,8 @@ interface NoteDao {
     suspend fun delete(n: Note)
     @Query("DELETE FROM notes")
     suspend fun deleteAll()
+    @Query("DELETE FROM notes WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 // ========== HATIRLATICILAR DAO ==========
@@ -282,6 +311,8 @@ interface ReminderDao {
     suspend fun delete(r: Reminder)
     @Query("DELETE FROM reminders")
     suspend fun deleteAll()
+    @Query("DELETE FROM reminders WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 // ========== SU TÜKETİMİ DAO ==========
@@ -300,6 +331,8 @@ interface WaterLogDao {
     suspend fun delete(w: WaterLog)
     @Query("SELECT * FROM water_logs")
     suspend fun getAllOnce(): List<WaterLog>
+    @Query("DELETE FROM water_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
 }
 
 // ========== UYKU TAKİBİ DAO ==========
@@ -318,4 +351,6 @@ interface SleepLogDao {
     suspend fun delete(s: SleepLog)
     @Query("SELECT * FROM sleep_logs")
     suspend fun getAllOnce(): List<SleepLog>
+    @Query("DELETE FROM sleep_logs WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

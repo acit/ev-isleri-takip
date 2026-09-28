@@ -8,14 +8,14 @@ plugins {
 
 android {
     namespace = "com.aile.takip"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.aile.takip"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 11
-        versionName = "3.5.0"
+        targetSdk = 36
+        versionCode = 21
+        versionName = "3.7.4"
         vectorDrawables.useSupportLibrary = true
     }
 
@@ -34,8 +34,11 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // Minify kapalı: R8 karartması bazı cihazlarda gözlemci zincirinde
+            // NullPointerException'a yol açıyordu (A7.c9.onChanged). Kod boyutu
+            // yerine kararlılık önceliklendirildi. Sorun çözülünce tekrar açılabilir.
+            isMinifyEnabled = false
+            isShrinkResources = false
             val ksFile = file(
                 System.getenv("RELEASE_STORE_FILE") ?: "../aile-takip-release.jks"
             )
@@ -97,6 +100,12 @@ dependencies {
     // Image Loading (Coil 3 for Compose)
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+
+    // QR kod üretimi (davet) — ML Kit yalnızca okur, encode için ZXing core
+    implementation("com.google.zxing:core:3.5.3")
+
+    // Fiş/fatura OCR — cihaz üstü metin tanıma (çevrimdışı çalışır)
+    implementation("com.google.mlkit:text-recognition:16.0.1")
 
     // CameraX + ML Kit Barcode Scanning
     val cameraxVersion = "1.4.1"

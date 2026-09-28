@@ -119,7 +119,7 @@ fun MessagesScreen(vm: MainViewModel) {
         // Page header
         Column(modifier = Modifier.padding(16.dp)) {
             Text("\uD83D\uDCAC Mesajlar", style = MaterialTheme.typography.headlineMedium)
-            Text("\${messages.size} mesaj", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("${messages.size} mesaj", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         // Messages list
@@ -377,7 +377,7 @@ fun MessagesScreen(vm: MainViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     Text(
-                        "\${inputText.length}/500",
+                        "${inputText.length}/500",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (inputText.length > 450) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )

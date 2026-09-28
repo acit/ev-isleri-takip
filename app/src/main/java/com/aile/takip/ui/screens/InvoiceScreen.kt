@@ -1,5 +1,7 @@
 package com.aile.takip.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,11 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aile.takip.data.model.Invoice
@@ -28,6 +32,26 @@ fun InvoiceScreen(vm: MainViewModel) {
     var amount by remember { mutableStateOf("") }
     var category by remember { mutableStateOf("Genel") }
     var dueDate by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // Fiş tarama sonucunu formla otomatik doldur (Compose State — doğrudan okunur)
+    val receiptScan = vm.receiptScanResult.value
+    val isScanningReceipt = vm.isScanningReceipt.value
+    LaunchedEffect(receiptScan) {
+        val scan = receiptScan ?: return@LaunchedEffect
+        if (scan.title.isNotBlank()) title = scan.title
+        if (scan.amount.isNotBlank()) amount = scan.amount
+        if (scan.dueDate.isNotBlank()) dueDate = scan.dueDate
+        if (scan.category.isNotBlank() && scan.category != "Genel") category = scan.category
+        if (scan.confidence > 0f) showDialog = true
+    }
+
+    // Fiş fotoğrafı seç (galeri/kamera) ve OCR ile oku
+    val receiptPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) vm.scanReceiptImage(context, uri)
+    }
 
     val totalPending = invoices.filter { it.status == "pending" }.sumOf { it.amount }
     val totalPaid = invoices.filter { it.status == "paid" }.sumOf { it.amount }
@@ -41,11 +65,30 @@ fun InvoiceScreen(vm: MainViewModel) {
         
         Spacer(Modifier.height(8.dp))
         
-        // Add button
-        Button(onClick = { showDialog = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp)) {
-            Icon(Icons.Default.Add, null)
-            Spacer(Modifier.width(8.dp))
-            Text("Fatura Ekle")
+        // Add button + fiş tarama
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = { showDialog = true },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Icon(Icons.Default.Add, null)
+                Spacer(Modifier.width(8.dp))
+                Text("Fatura Ekle")
+            }
+            OutlinedButton(
+                onClick = { receiptPicker.launch("image/*") },
+                enabled = !isScanningReceipt,
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                if (isScanningReceipt) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.PhotoCamera, null)
+                }
+                Spacer(Modifier.width(6.dp))
+                Text(if (isScanningReceipt) "Okunuyor…" else "Fiş Tara")
+            }
         }
         
         Spacer(Modifier.height(12.dp))

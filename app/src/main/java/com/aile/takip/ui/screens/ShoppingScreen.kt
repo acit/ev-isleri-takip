@@ -42,6 +42,8 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
     val isLookingUp by vm.isLookingUpBarcode
     val lookupResult by vm.lastLookupResult
     var showLookupResult by remember { mutableStateOf(false) }
+    var barcodeNotFound by remember { mutableStateOf(false) }
+    val navToInvoice = navController
 
     // Handle scan result
     val scanResult by vm.lastScanResult
@@ -60,6 +62,8 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
                 category = result.category.ifEmpty { "Genel" }
                 showLookupResult = true
             } else if (result.barcode.isNotEmpty()) {
+                // Barkod internette bulunamadı — fiş fotoğrafından okumayı öner
+                barcodeNotFound = true
                 newItem = result.barcode
                 showLookupResult = true
             }
@@ -93,8 +97,45 @@ fun ShoppingScreen(vm: MainViewModel, navController: NavController? = null) {
                         Text("\u00dcr\u00fcn bulundu!", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.Medium)
                         Text("Otomatik dolduruldu", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    IconButton(onClick = { showLookupResult = false }, modifier = Modifier.size(24.dp)) {
+                    IconButton(onClick = { showLookupResult = false; barcodeNotFound = false }, modifier = Modifier.size(24.dp)) {
                         Icon(Icons.Default.Close, "Kapat", modifier = Modifier.size(14.dp))
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // Barkod bulunamadı → fiş/fatura ile okuma önerisi
+        if (barcodeNotFound) {
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+            ) {
+                Column(modifier = Modifier.padding(12.dp).fillMaxWidth()) {
+                    Text(
+                        "Barkod internette bulunamadı",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        "Fiş/fatura fotoğrafını okutarak tutar ve tarih bilgisiyle fatura olarak ekleyebilirsin.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    if (navToInvoice != null) {
+                        FilledTonalButton(
+                            onClick = {
+                                barcodeNotFound = false
+                                navToInvoice.navigate("invoices")
+                            },
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(Icons.Default.Receipt, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Fiş Tara → Fatura", style = MaterialTheme.typography.labelMedium)
+                        }
                     }
                 }
             }

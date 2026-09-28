@@ -10,8 +10,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.derivedStateOf
+import com.aile.takip.sync.AutoSyncEngine
+import com.aile.takip.sync.DatabaseSyncSource
+import com.aile.takip.sync.FamilyInvite
+import com.aile.takip.sync.FamilyInviteCodec
 import com.aile.takip.sync.FirebaseSyncService
 import com.aile.takip.sync.SyncCoordinator
+import com.aile.takip.sync.SyncPreferences
 import com.aile.takip.utils.BitmapCache
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -34,11 +39,59 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // Firebase Sync
     private val syncService = FirebaseSyncService(db)
+    private val syncPrefs = SyncPreferences(app)
+    private val autoSyncEngine = AutoSyncEngine(DatabaseSyncSource(db, syncService), syncService)
+
     val syncState = syncService.syncState
     val lastSyncTime = syncService.lastSyncTime
     val syncedTables = syncService.syncedTables
+
+    /** Çakışmada daha yeni olan yerel kaydın korunduğu (ve geri gönderildiği) sayı. */
+    val conflictsSolved = syncService.conflictsSolved
     val syncEnabled = mutableStateOf(false)
     val familyGroupId = mutableStateOf("")
+    val familyPasscode = mutableStateOf("")
+    val syncError = mutableStateOf<String?>(null)
+
+    // Aile hesabı (gerçek üye kimliği = Firebase UID) ve üyelik durumu
+    val familyUid = syncService.uid
+    val membership = syncService.membership
+    val pendingJoinRequests = syncService.pendingJoins
+    val authError = syncService.authError
+    val signedInEmail = mutableStateOf("")
+
+    /** Katılım isteğinin doğru aile şifresiyle geldiğini doğrular. */
+    fun passcodeProofMatches(proof: String): Boolean = syncService.passcodeProofMatches(proof)
+
+    // Otomatik senkron durumu (her değişiklikte aile bireylerine yayılır)
+    val autoSyncEnabled = autoSyncEngine.enabled
+    val pendingSyncCount = autoSyncEngine.pendingCount
+    val autoPushCount = autoSyncEngine.pushCount
+    val lastAutoPushAt = autoSyncEngine.lastPushAt
+
+    // Bu cihazı kullanan aile üyesi
+    val myMemberId = mutableStateOf("")
+
+    init {
+        // Uzaktan uygulanan veriyi otomatik senkron motoru tekrar göndermesin (echo koruması)
+        syncService.autoSync = autoSyncEngine
+        // Üyelik onaylandığı anda senkronu otomatik başlat
+        // NOT: Bu blok TÜM durum tanımlarından sonra gelmeli. Aksi halde Dispatchers.Main.immediate
+        // collect'in ilk değerini kurucu içinde senkron yayar ve henüz oluşmamış (null)
+        // MutableState'e yazmaya çalışıp NullPointerException ile çöker.
+        viewModelScope.launch {
+            syncService.membership.collect { state ->
+                when (state) {
+                    is FirebaseSyncService.Membership.Member -> {
+                        syncEnabled.value = true
+                        autoSyncEngine.start()
+                    }
+                    is FirebaseSyncService.Membership.SignedOut -> syncEnabled.value = false
+                    else -> Unit
+                }
+            }
+        }
+    }
 
     // Cross-feature sync coordinator
     private val coordinator = SyncCoordinator(repo)
@@ -97,6 +150,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
     val unreadMessageCount by derivedStateOf { messages.value.size }
     val totalMembers by derivedStateOf { members.value.size }
+    val currentMember by derivedStateOf { members.value.find { it.id == myMemberId.value } }
 
     init {
         // Seed sample data on first run, then check PIN
@@ -115,6 +169,42 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 // Auth check failed, auto-login
                 isAuthenticated.value = true
             }
+            // Daha önce kurulmuş aile senkronizasyonunu sürdür
+            try {
+                bootstrapAutoSync()
+            } catch (e: Exception) {
+                // Otomatik bağlanma başarısız, uygulama yerel olarak çalışmaya devam eder
+            }
+        }
+    }
+
+    /**
+     * Kayıtlı aile grubu varsa uygulama açılışında otomatik bağlanır ve
+     * otomatik senkronu (auto-sync) başlatır. Veriler zaten cihazda (Room) durur,
+     * bu yüzden bağlantı yokken uygulama tam çalışır.
+     */
+    private suspend fun bootstrapAutoSync() {
+        val uid = syncService.loadExistingSession()
+        if (uid == null) return
+        val cfg = syncPrefs.current()
+        myMemberId.value = cfg.myMemberId
+        signedInEmail.value = cfg.myEmail
+        autoSyncEngine.setEnabled(cfg.autoSync)
+        if (cfg.groupId.isBlank()) return
+
+        familyGroupId.value = cfg.groupId
+        familyPasscode.value = cfg.passcode
+        syncService.setGroup(cfg.groupId)
+        when (syncService.refreshMembership()) {
+            is FirebaseSyncService.Membership.Member -> {
+                syncEnabled.value = true
+                autoSyncEngine.start()
+            }
+            is FirebaseSyncService.Membership.Pending ->
+                syncError.value = "Aile bireyinizin onayı bekleniyor."
+            is FirebaseSyncService.Membership.Rejected ->
+                syncError.value = "Katılım isteğiniz reddedildi. Aile bireyinizle görüşün."
+            else -> Unit
         }
     }
 
@@ -143,6 +233,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             if (current != null) {
                 repo.upsertAuth(current.copy(pin = newPin))
             }
+        }
+    }
+
+    /** Kullanıcı adı/e-postasını günceller. */
+    fun updateProfile(name: String, email: String) {
+        viewModelScope.launch {
+            val current = repo.getAuthOnce()
+            repo.upsertAuth(
+                current?.copy(name = name, email = email) ?: UserAuth(name = name, email = email)
+            )
         }
     }
     fun verifySecurityAnswer(answer: String): Boolean {
@@ -193,16 +293,38 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun updateTask(task: Task) {
         viewModelScope.launch {
             repo.upsertTask(task)
+            // Bağlı hatırlatıcıyı da güncelle/iptal et (modüller arası senkron)
+            try { coordinator.onTaskUpdated(task) } catch (_: Exception) {}
             addSyncEvent("tasks", "update")
         }
     }
-    fun deleteTask(task: Task) { viewModelScope.launch { repo.deleteTask(task); addSyncEvent("tasks", "delete") } }
+    fun deleteTask(task: Task) {
+        viewModelScope.launch {
+            repo.deleteTask(task)
+            // Bağlı hatırlatıcıları da temizle
+            try { coordinator.onTaskDeleted(task) } catch (_: Exception) {}
+            addSyncEvent("tasks", "delete")
+        }
+    }
 
     // ===== INVENTORY =====
     fun addInventory(name: String, category: String = "Genel", quantity: Int = 1, unit: String = "adet", minStock: Int = 0, location: String = "", imageBase64: String = "") {
-        viewModelScope.launch { repo.upsertInventory(InventoryItem(name = name, category = category, quantity = quantity, unit = unit, minStock = minStock, location = location, imageBase64 = imageBase64)); addSyncEvent("inventory", "insert") }
+        viewModelScope.launch {
+            val item = InventoryItem(name = name, category = category, quantity = quantity, unit = unit, minStock = minStock, location = location, imageBase64 = imageBase64)
+            repo.upsertInventory(item)
+            // Eşik altındaysa stok hatırlatıcısı + alışveriş listesi
+            try { coordinator.onInventoryLowStock(item) } catch (_: Exception) {}
+            addSyncEvent("inventory", "insert")
+        }
     }
-    fun updateInventory(item: InventoryItem) { viewModelScope.launch { repo.upsertInventory(item); addSyncEvent("inventory", "update") } }
+    fun updateInventory(item: InventoryItem) {
+        viewModelScope.launch {
+            repo.upsertInventory(item)
+            // Miktar/eşik değişiminde stok hatırlatıcısını yönet
+            try { coordinator.onInventoryLowStock(item) } catch (_: Exception) {}
+            addSyncEvent("inventory", "update")
+        }
+    }
     fun deleteInventory(item: InventoryItem) { viewModelScope.launch { repo.deleteInventory(item); addSyncEvent("inventory", "delete") } }
 
     // ===== BUDGETS =====
@@ -253,16 +375,132 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleInvoiceStatus(invoice: Invoice) {
         viewModelScope.launch {
             val newStatus = if (invoice.status == "paid") "pending" else "paid"
-            repo.upsertInvoice(invoice.copy(status = newStatus)); addSyncEvent("invoices", "update")
+            val updated = invoice.copy(status = newStatus)
+            repo.upsertInvoice(updated)
+            // Ödeme/geri alma bağlı hatırlatıcıya yansır (ödendiyse iptal)
+            try { coordinator.onInvoiceUpdated(updated) } catch (_: Exception) {}
+            addSyncEvent("invoices", "update")
         }
     }
     fun updateInvoice(invoice: Invoice) {
         viewModelScope.launch {
             repo.upsertInvoice(invoice)
+            // Bağlı hatırlatıcıyı yenile/ödendi ise iptal et
+            try { coordinator.onInvoiceUpdated(invoice) } catch (_: Exception) {}
             addSyncEvent("invoices", "update")
         }
     }
-    fun deleteInvoice(i: Invoice) { viewModelScope.launch { repo.deleteInvoice(i); addSyncEvent("invoices", "delete") } }
+    fun deleteInvoice(i: Invoice) {
+        viewModelScope.launch {
+            repo.deleteInvoice(i)
+            // Bağlı hatırlatıcıları da temizle
+            try { coordinator.onInvoiceDeleted(i) } catch (_: Exception) {}
+            addSyncEvent("invoices", "delete")
+        }
+    }
+
+    // ===== FİŞ/FATURA OCR =====
+    /** Fiş tarama sonucu (UI otomatik doldurma için). */
+    val receiptScanResult = mutableStateOf<ReceiptOcrView?>(null)
+    val isScanningReceipt = mutableStateOf(false)
+
+    /** UI'a taşınabilir sadeleştirilmiş OCR sonucu. */
+    data class ReceiptOcrView(
+        val title: String,
+        val amount: String,
+        val dueDate: String,
+        val category: String,
+        val confidence: Float,
+        val rawText: String
+    )
+
+    /**
+     * Fiş/fatura fotoğrafını OCR ile okur; sonucu [receiptScanResult]'a yazar.
+     * Barkod internette bulunamadığında fiş fotoğrafı yeterli olur.
+     */
+    fun scanReceiptImage(context: android.content.Context, uri: android.net.Uri) {
+        if (isScanningReceipt.value) return
+        isScanningReceipt.value = true
+        receiptScanResult.value = null
+        val appContext = context.applicationContext
+        com.aile.takip.utils.ReceiptOcr.scan(appContext, uri) { result ->
+            isScanningReceipt.value = false
+            receiptScanResult.value = result.parsed?.let { p ->
+                ReceiptOcrView(
+                    title = p.title,
+                    amount = p.amount?.let { a ->
+                        if (a % 1.0 == 0.0) a.toInt().toString() else String.format(java.util.Locale.US, "%.2f", a)
+                    } ?: "",
+                    dueDate = p.dueDate,
+                    category = p.category,
+                    confidence = p.confidence,
+                    rawText = result.rawText.takeLast(2000)
+                )
+            } ?: ReceiptOcrView("", "", "", "", 0f, result.error ?: result.rawText.takeLast(500))
+        }
+    }
+
+    // ===== YEMEK PLANI ↔ AKILLI ALIŞVERİŞ =====
+    /** Haftalık eksik malzeme önerileri; null = henüz hesaplanmadı, boş = eksik yok. */
+    val smartSuggestions = mutableStateOf<List<com.aile.takip.sync.AggregateMissing>?>(null)
+    val isLoadingSuggestions = mutableStateOf(false)
+
+    // Haftalık market listesi + önceki hafta karşılaştırması
+    val marketDiff = mutableStateOf<com.aile.takip.utils.MarketListStore.WeekDiff?>(null)
+    val isGeneratingMarketList = mutableStateOf(false)
+
+    private val marketPersistence by lazy { com.aile.takip.sync.MarketListPersistence(app.applicationContext) }
+
+    /**
+     * Bu haftanın market listesini üretir (eksiklerden), kaydeder ve
+     * önceki haftayla karşılaştırma özetini döner.
+     */
+    fun generateMarketList(onDone: (com.aile.takip.utils.MarketListStore.WeekDiff?) -> Unit = {}) {
+        if (isGeneratingMarketList.value) return
+        isGeneratingMarketList.value = true
+        viewModelScope.launch {
+            val diff = try {
+                coordinator.generateWeeklyMarketList(marketPersistence)
+            } catch (_: Exception) {
+                null
+            }
+            marketDiff.value = diff
+            isGeneratingMarketList.value = false
+            onDone(diff)
+        }
+    }
+
+    /** Yemek planındaki eksik malzemeleri envanterle gerçek eşleştirmeyle hesaplar. */
+    fun loadSmartSuggestions() {
+        if (isLoadingSuggestions.value) return
+        isLoadingSuggestions.value = true
+        viewModelScope.launch {
+            try {
+                smartSuggestions.value = coordinator.weeklyMissingIngredients()
+            } catch (_: Exception) {
+                smartSuggestions.value = emptyList()
+            }
+            isLoadingSuggestions.value = false
+        }
+    }
+
+    /**
+     * Eksik malzemeleri alışveriş listesine ekler.
+     * [names] boşsa tümünü ekler; eklenen malzeme sayısını döner (UI bildirimi için).
+     */
+    fun addSuggestionsToShopping(names: Collection<String> = emptyList(), onDone: (Int) -> Unit = {}) {
+        viewModelScope.launch {
+            val added = try {
+                coordinator.addMissingToShopping(names)
+            } catch (_: Exception) {
+                0
+            }
+            if (added > 0) addSyncEvent("shopping", "insert")
+            // Listenin güncel halini yansıt: eklenenler artık "eksik" önerisi olmamalı
+            loadSmartSuggestions()
+            onDone(added)
+        }
+    }
 
     // ===== MESSAGES =====
     fun sendMessage(content: String, senderName: String = "Ben", attachments: String = "") {
@@ -302,12 +540,43 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // ===== MEMBERS =====
     fun addMember(name: String, role: String = "Üye", color: String = "#3498DB") {
-        viewModelScope.launch { repo.upsertMember(FamilyMember(name = name, role = role, color = color)); addSyncEvent("family_members", "insert") }
+        viewModelScope.launch {
+            repo.upsertMember(FamilyMember(name = name, role = role, color = color))
+            addSyncEvent("members", "insert")
+        }
     }
+
+    /** Var olan üyenin adı, rolü, rengi vb. güncellenir. */
+    fun updateMember(member: FamilyMember) {
+        viewModelScope.launch {
+            repo.upsertMember(member.copy(syncVersion = System.currentTimeMillis()))
+            addSyncEvent("members", "update")
+        }
+    }
+
     fun addPoints(member: FamilyMember, points: Int) {
-        viewModelScope.launch { repo.upsertMember(member.copy(points = member.points + points)); addSyncEvent("family_members", "update") }
+        viewModelScope.launch {
+            repo.upsertMember(member.copy(points = member.points + points, syncVersion = System.currentTimeMillis()))
+            addSyncEvent("members", "update")
+        }
     }
-    fun deleteMember(m: FamilyMember) { viewModelScope.launch { repo.deleteMember(m); addSyncEvent("family_members", "delete") } }
+
+    fun deleteMember(m: FamilyMember) {
+        viewModelScope.launch {
+            repo.deleteMember(m)
+            if (myMemberId.value == m.id) {
+                myMemberId.value = ""
+                syncPrefs.setDeviceUser("", "")
+            }
+            addSyncEvent("members", "delete")
+        }
+    }
+
+    /** Bu cihazı kullanan aile üyesini seçer (kim neyi yaptı bilgisi için). */
+    fun setDeviceUser(member: FamilyMember?) {
+        myMemberId.value = member?.id ?: ""
+        viewModelScope.launch { syncPrefs.setDeviceUser(member?.id ?: "", member?.name ?: "") }
+    }
 
     // ===== MEAL PLANS =====
     fun addMealPlan(dayOfWeek: Int, mealType: String, dish: String, notes: String = "") {
@@ -386,23 +655,206 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ===== FIREBASE SYNC =====
-    fun connectToFirebase(groupId: String) {
-        familyGroupId.value = groupId
+
+    // ---- Aile hesabı (gerçek üye kimliği) ----
+
+    fun signInFamilyAccount(email: String, password: String) {
         viewModelScope.launch {
-            syncEnabled.value = syncService.connect(groupId)
+            syncError.value = null
+            when (val r = syncService.signInWithEmail(email, password)) {
+                is FirebaseSyncService.AuthResult.Success -> {
+                    signedInEmail.value = email.trim()
+                    syncPrefs.setAccount(email.trim())
+                    bootstrapAutoSync()
+                }
+                is FirebaseSyncService.AuthResult.Error -> syncError.value = r.message
+            }
         }
     }
 
+    fun signUpFamilyAccount(email: String, password: String) {
+        viewModelScope.launch {
+            syncError.value = null
+            when (val r = syncService.signUpWithEmail(email, password)) {
+                is FirebaseSyncService.AuthResult.Success -> {
+                    signedInEmail.value = email.trim()
+                    syncPrefs.setAccount(email.trim())
+                    bootstrapAutoSync()
+                }
+                is FirebaseSyncService.AuthResult.Error -> syncError.value = r.message
+            }
+        }
+    }
+
+    fun signOutFamilyAccount() {
+        autoSyncEngine.stop()
+        syncService.signOutUser()
+        syncEnabled.value = false
+        signedInEmail.value = ""
+        viewModelScope.launch {
+            syncPrefs.setEnabled(false)
+            syncPrefs.setAccount("")
+        }
+    }
+
+    // ---- Grup kurma / katılma ----
+
+    /**
+     * Yeni aile grubu oluşturur. Grup kimliği tahmin edilemez şekilde üretilir.
+     * Kuran kişi ilk üye olur ve mevcut veriler gruba taşınır.
+     */
+    fun createFamilyGroup(passcode: String) {
+        viewModelScope.launch {
+            syncError.value = null
+            if (syncService.uid.value == null) {
+                syncError.value = "Önce aile hesabıyla giriş yapın"
+                return@launch
+            }
+            if (passcode.length < 4) {
+                syncError.value = "Aile şifresi en az 4 karakter olmalı"
+                return@launch
+            }
+            val newGroupId = SyncPreferences.newGroupId()
+            val myName = currentMember?.name?.ifBlank { null } ?: "Aile Bireyi"
+
+            when (val result = syncService.createFamily(newGroupId, passcode, myName)) {
+                is FirebaseSyncService.Membership.Member -> {
+                    familyGroupId.value = newGroupId
+                    familyPasscode.value = passcode
+                    syncPrefs.saveGroup(newGroupId, passcode)
+                    syncEnabled.value = true
+                    // Kurucu cihaz: mevcut veriyi gruba taşı
+                    autoSyncEngine.pause()
+                    try {
+                        syncService.pushAll()
+                    } finally {
+                        autoSyncEngine.resume()
+                    }
+                    autoSyncEngine.setEnabled(syncPrefs.current().autoSync)
+                    autoSyncEngine.start()
+                }
+                is FirebaseSyncService.Membership.Error -> syncError.value = result.message
+                else -> syncError.value = "Grup oluşturulamadı"
+            }
+        }
+    }
+
+    /**
+     * Var olan gruba katılma isteği gönderir.
+     *
+     * Kullanıcı doğrudan üye olamaz: istek gönderilir ve **mevcut bir aile bireyi
+     * onaylayana kadar** hiçbir veri okunamaz/yazılamaz (kurallar bunu zorunlu kılar).
+     */
+    fun requestJoinFamily(groupId: String, passcode: String) {
+        viewModelScope.launch {
+            syncError.value = null
+            if (groupId.isBlank()) {
+                syncError.value = "Grup ID gerekli"
+                return@launch
+            }
+            if (passcode.length < 4) {
+                syncError.value = "Aile şifresi en az 4 karakter olmalı"
+                return@launch
+            }
+            if (syncService.uid.value == null) {
+                syncError.value = "Önce aile hesabıyla giriş yapın"
+                return@launch
+            }
+            familyGroupId.value = groupId.trim()
+            familyPasscode.value = passcode
+            syncService.setGroup(groupId.trim())
+
+            // Zaten onaylanmış üye miyiz?
+            when (val state = syncService.refreshMembership()) {
+                is FirebaseSyncService.Membership.Member -> {
+                    syncPrefs.saveGroup(groupId.trim(), passcode)
+                    syncEnabled.value = true
+                    autoSyncEngine.start()
+                    return@launch
+                }
+                is FirebaseSyncService.Membership.Error -> {
+                    syncError.value = state.message
+                    return@launch
+                }
+                else -> Unit
+            }
+
+            val myName = currentMember?.name?.ifBlank { null } ?: "Aile Bireyi"
+            when (val result = syncService.requestJoin(passcode, myName)) {
+                is FirebaseSyncService.Membership.Pending -> {
+                    syncPrefs.saveGroup(groupId.trim(), passcode)
+                    syncError.value = "Katılım isteğiniz gönderildi. Aile bireyinizin onayı bekleniyor."
+                }
+                is FirebaseSyncService.Membership.Error -> syncError.value = result.message
+                else -> syncError.value = "Katılım isteği gönderilemedi"
+            }
+        }
+    }
+
+    // ---- Üye yönetimi (yalnızca mevcut üyeler yapabilir) ----
+
+    fun approveJoinRequest(request: FirebaseSyncService.JoinRequest) {
+        viewModelScope.launch {
+            if (!syncService.approveJoin(request.uid, request.name)) {
+                syncError.value = "Katılım isteği onaylanamadı"
+            }
+        }
+    }
+
+    fun rejectJoinRequest(uid: String) {
+        viewModelScope.launch { syncService.rejectJoin(uid) }
+    }
+
+    /** Bir üyenin grup erişimini kaldırır. */
+    fun removeFamilyAccess(uid: String) {
+        viewModelScope.launch {
+            if (!syncService.removeMember(uid)) {
+                syncError.value = "Üyenin erişimi kaldırılamadı"
+            }
+        }
+    }
+
+    /** Cihazdaki tüm veriyi gruba elle gönderir. */
     fun syncToFirebase() {
         viewModelScope.launch {
-            syncService.pushAll()
+            autoSyncEngine.pause()
+            try {
+                syncService.pushAll()
+            } finally {
+                autoSyncEngine.resume()
+            }
         }
+    }
+
+    /** Otomatik senkronu açar/kapatır. Veriler her durumda cihazda kalır. */
+    fun setAutoSync(enabled: Boolean) {
+        autoSyncEngine.setEnabled(enabled)
+        viewModelScope.launch { syncPrefs.setAutoSync(enabled) }
     }
 
     fun disconnectFirebase() {
+        autoSyncEngine.stop()
         syncService.disconnect()
         syncEnabled.value = false
+        viewModelScope.launch { syncPrefs.setEnabled(false) }
     }
+
+    fun clearSyncError() {
+        syncError.value = null
+    }
+
+    // ===== AİLE DAVETİ / PAYLAŞIM =====
+
+    /** QR/kod olarak okunabilen kısa davet kodu. */
+    fun familyInviteCode(): String =
+        FamilyInviteCodec.encode(familyGroupId.value, familyPasscode.value)
+
+    /** WhatsApp/mesaj ile paylaşılacak okunur davet metni. */
+    fun familyInviteText(): String =
+        FamilyInviteCodec.shareText(familyGroupId.value, familyPasscode.value)
+
+    /** QR koddan veya paylaşılan metinden davet bilgilerini çözer. */
+    fun parseInvite(raw: String): FamilyInvite? = FamilyInviteCodec.decode(raw)
 
     // ===== NOTES =====
     fun addNote(title: String, content: String = "", category: String = "Genel", color: String = "#3498DB", attachments: String = "", createdBy: String = "") {
@@ -582,7 +1034,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         super.onCleared()
+        autoSyncEngine.shutdown()
         syncService.stopListening()
         BitmapCache.clear()
     }
 }
+

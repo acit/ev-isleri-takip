@@ -38,6 +38,47 @@ fun SectionTitle(title: String) {
         modifier = Modifier.padding(vertical = 8.dp))
 }
 
+/** "#3498DB" gibi hex renk kodunu Compose Color'a çevirir. */
+fun parseHexColor(hex: String, fallback: Color = Color(0xFF3498DB)): Color = try {
+    val cleaned = hex.removePrefix("#").trim()
+    when (cleaned.length) {
+        6 -> Color(("FF" + cleaned).toLong(16))
+        8 -> Color(cleaned.toLong(16))
+        else -> fallback
+    }
+} catch (e: Exception) {
+    fallback
+}
+
+/** İsimden avatar baş harflerini üretir (en fazla 2 harf). */
+fun initialsOf(name: String): String {
+    val parts = name.trim().split(" ").filter { it.isNotBlank() }
+    return when {
+        parts.isEmpty() -> "?"
+        parts.size == 1 -> parts[0].take(1).uppercase()
+        else -> (parts[0].take(1) + parts[1].take(1)).uppercase()
+    }
+}
+
+/** Yuvarlak, renkli üye avatarı. */
+@Composable
+fun MemberAvatar(name: String, colorHex: String, size: androidx.compose.ui.unit.Dp = 44.dp) {
+    Surface(
+        modifier = Modifier.size(size),
+        shape = RoundedCornerShape(size / 2),
+        color = parseHexColor(colorHex)
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                initialsOf(name),
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = (size.value / 2.6).sp
+            )
+        }
+    }
+}
+
 @Composable
 fun PageScaffold(title: String, icon: String = "", content: @Composable ColumnScope.() -> Unit) {
     Column(modifier = Modifier.padding(16.dp)) {
