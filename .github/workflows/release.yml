@@ -135,12 +135,11 @@ jobs:
         run: |
           cd ios
           set -o pipefail
-          # Kök neden: actool 22A3362 (iphonesimulator SDK) için simulator runtime
-          # listesinde uyuşmayan sürüm arıyor; runner'da 17.x simulator runtime
-          # eksik/uyumsuz. Deployment target 17.0 ile de aynı. Çözüm: iOS simulator
-          # platform bileşenini açıkça indir (actool bunu runtime listesinden okur).
+          # Kök neden: actool 22A3362 (iphonesimulator SDK, Xcode 16.0) için runtime
+          # listesi runner'da eksik/uyumsuz (runner-images #13317 workaround'u).
+          # Çözüm: iOS simulator runtime'ını açıkça indir + doğrula.
           xcodebuild -downloadPlatform iOS 2>&1 | tail -3 || true
-          xcodebuild -downloadPlatform iOS\ Simulator 2>&1 | tail -3 || true
+          xcrun simctl runtime list 2>&1 | head -8 || true
           # Ham xcodebuild çıktısı dosyaya yazılır; konsola xcpretty özeti gider.
           # Derleme başarısız olsa bile raw log artifact'e eklenir (Upload iOS Logs).
           xcodebuild \
