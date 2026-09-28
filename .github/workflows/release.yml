@@ -124,7 +124,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Select Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+        # Xcode 16.0 (22A3362) actool'u device build'de simulator runtime arayan buglı
+        # sürüm — 16.4'e geç (runner'da mevcut; ios-build.yml simulator build'i de aynı).
+        run: |
+          ls /Applications | grep -i xcode || true
+          if [ -d "/Applications/Xcode_16.4.app" ]; then
+            sudo xcode-select -s /Applications/Xcode_16.4.app
+          else
+            sudo xcode-select -s /Applications/Xcode_16.app
+          fi
 
       - name: Show versions
         run: |
