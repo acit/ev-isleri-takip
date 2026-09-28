@@ -186,34 +186,40 @@ jobs:
         run: |
           cd ios
           VERSION=${{ steps.ios_version.outputs.version }}
-          exec 2> >(tee build/ipa-export-stderr.log >&2)
-          echo "=== Derleme ürün dizinleri ==="
-          ls -la build/DerivedData/Build/Products/Release-iphoneos/ 2>/dev/null || true
-          echo "=== Tüm AileTakip.app kopyaları ==="
-          find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null
-          echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü tercih) ==="
+          LOG=build/ipa-export.log
+          {
+            echo "=== Derleme ürün dizinleri ==="
+            ls -la build/DerivedData/Build/Products/Release-iphoneos/ 2>/dev/null || true
+            echo "=== Tüm AileTakip.app kopyaları ==="
+            find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null
+          } | tee "$LOG"
+          echo "=== Aday seçimi: binary içeren ilk .app (Release ürünü tercih) ===" | tee -a "$LOG"
           APP_PATH=""
-          while IFS= read -r candidate; do
+          CANDIDATES=$(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null)
+          for candidate in $CANDIDATES; do
             if [ -f "$candidate/AileTakip" ]; then
+              echo "  aday (binary VAR): $candidate" | tee -a "$LOG"
               case "$candidate" in
                 *Release*) APP_PATH="$candidate"; break ;;
               esac
               [ -z "$APP_PATH" ] && APP_PATH="$candidate"
+            else
+              echo "  aday (binary YOK): $candidate" | tee -a "$LOG"
             fi
-          done < <(find build/DerivedData -name "AileTakip.app" -type d 2>/dev/null)
+          done
           if [ -z "$APP_PATH" ]; then
-            echo "::error::Binary içeren AileTakip.app bulunamadı — tüm .app listesi artifact log'unda"
+            echo "::error::Binary içeren AileTakip.app bulunamadı — ayrıntı: $LOG (artifact)" | tee -a "$LOG"
             exit 1
           fi
-          echo "Found app: $APP_PATH ($(du -sh "$APP_PATH" | cut -f1))"
+          echo "Found app: $APP_PATH ($(du -sh "$APP_PATH" | cut -f1))" | tee -a "$LOG"
           rm -rf build/IPA
           mkdir -p build/IPA/Payload
           cp -R "$APP_PATH" build/IPA/Payload/
           ( cd build/IPA && zip -qry "../../AileTakip-v${VERSION}.ipa" Payload/ )
-          echo "=== IPA Created ==="
-          ls -lh "AileTakip-v${VERSION}.ipa"
+          echo "=== IPA Created ===" | tee -a "$LOG"
+          ls -lh "AileTakip-v${VERSION}.ipa" | tee -a "$LOG"
           SIZE=$(stat -f%z "AileTakip-v${VERSION}.ipa" 2>/dev/null || stat -c%s "AileTakip-v${VERSION}.ipa")
-          echo "IPA boyutu: $SIZE bytes"
+          echo "IPA boyutu: $SIZE bytes" | tee -a "$LOG"
           if [ "$SIZE" -lt 1000000 ]; then
             echo "::error::IPA şüpheli derecede küçük ($SIZE bytes)"
             exit 1
@@ -236,7 +242,7 @@ jobs:
           if-no-files-found: warn
           path: |
             ios/build/xcodebuild-device.log
-            ios/build/ipa-export-stderr.log
+            ios/build/ipa-export.log
             ios/build/DerivedData/Build/Products/**/AileTakip.app/Info.plist
             ios/build/DerivedData/Logs/Build/*.xcactivitylog
             ios/build/DerivedData/info.plist
