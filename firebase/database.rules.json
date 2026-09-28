@@ -1,0 +1,125 @@
+{
+  "rules": {
+    "aile_grubu": {
+      "$gid": {
+        "meta": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+
+          "ownerUid": {
+            ".write": "auth != null && !data.exists()"
+          },
+          "passcodeHash": {
+            ".write": "auth != null && (root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists() || !data.exists())"
+          },
+          "createdAt": {
+            ".write": "auth != null && !data.exists()"
+          },
+
+          "members": {
+            "$uid": {
+              ".read": "auth != null && ($uid === auth.uid || root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists())",
+
+              ".write": "auth != null && (root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists() || ($uid === auth.uid && !root.child('aile_grubu').child($gid).child('meta').child('members').exists()))",
+
+              ".validate": "newData.hasChild('name')"
+            }
+          },
+
+          "tombstones": {
+            ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+            "$table": {
+              ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+              "$recordId": {
+                ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+                ".validate": "newData.hasChild('deletedAt')"
+              }
+            }
+          }
+        },
+
+        "joins": {
+          "$uid": {
+            ".read": "auth != null && ($uid === auth.uid || root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists())",
+
+            ".write": "auth != null && ($uid === auth.uid || root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists())",
+
+            ".validate": "newData.hasChild('name') && newData.hasChild('status')"
+          }
+        },
+
+        "members": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "tasks": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "shopping": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "messages": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "invoices": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "budgets": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "expenses": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "inventory": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "meal_plans": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "sports_clubs": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "workout_logs": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "calorie_logs": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "menstrual_cycles": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "notes": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "reminders": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "water_logs": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "sleep_logs": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        },
+        "last_sync": {
+          ".read": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()",
+          ".write": "auth != null && root.child('aile_grubu').child($gid).child('meta').child('members').child(auth.uid).exists()"
+        }
+      }
+    }
+  }
+}

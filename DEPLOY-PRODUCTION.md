@@ -28,23 +28,24 @@ cp ~/Downloads/google-services.json app/google-services.json
 2. Bölge: **europe-west1** (Türkiye)
 3. Kurallar (Production):
 
-```json
-{
-  "rules": {
-    "aile_grubu": {
-      "$group_id": {
-        ".read": "auth != null",
-        ".write": "auth != null"
-      }
-    }
-  }
-}
 ```
+firebase/database.rules.json  (repodaki dosyanın tamamı)
+```
+
+Bu kurallar, bir kullanıcının gruba erişebilmesi için
+`aile_grubu/$group_id/meta/members/{auth.uid}` düğümünde **onaylı üye** olmasını şart koşar.
+Grup kimliğini bilen ama onaylanmayan hiç kimse veri okuyamaz/yazamaz.
+Üyelik **onay** ile verilir: yeni cihaz katılma isteği gönderir, mevcut bir aile bireyi
+uygulamadan onaylar.
 
 #### Authentication:
 1. Firebase Console → **Authentication** → **"Başla"**
-2. **Anonymous** giriş etkinleştirin
-3. Opsiyonel: **Email/Password** ekleyin
+2. **Email/Password** girişini etkinleştirin
+3. **Anonymous** girişi **kapatın** (kullanılmıyor)
+
+> Senkronizasyon erişimi artık **gerçek üye kimliğine (UID)** bağlıdır. Her aile bireyi
+> kendi e-posta/şifresiyle "aile hesabı" açar. Anonim hesaplar kimlik kanıtlamadığı için
+> veritabanı kurallarında kullanılmaz.
 
 ### Adım 4: Release APK Oluştur
 
@@ -70,17 +71,22 @@ adb install app/build/outputs/apk/release/app-release.apk
 ## 📱 Uygulama İçi Firebase Kullanımı
 
 ### Mevcut Özellikler:
-- ✅ Anonymous giriş (otomatik)
-- ✅ Grup ID ile bağlantı
-- ✅ Gerçek zamanlı senkronizasyon
+- ✅ E-posta/şifre ile aile hesabı (gerçek UID)
+- ✅ Onaylı üyelik (grup kurma + katılma isteği)
+- ✅ Gerçek zamanlı, otomatik senkronizasyon
 - ✅ Tüm verilerin senkronizasyonu
 
-### Kullanım Akışı:
-1. Uygulamayı açın
-2. **"Senkronizasyon"** ekranına gidin
-3. **Grup ID** girin (veya QR kod ile tarayın)
-4. **"Bağlan"** butonuna tıklayın
-5. Veriler otomatik olarak senkronize edilir
+### Kurucu (ilk cihaz) akışı:
+1. Uygulamayı açın → **"Senkronizasyon"** ekranına gidin
+2. **Aile hesabı** oluşturun (e-posta + şifre)
+3. **"Aile Grubunu Oluştur"** ile aile şifresini belirleyin
+4. Veriler gruba taşınır ve otomatik senkron başlar
+
+### Katılan cihaz akışı:
+1. **Aile hesabı** oluşturun (kendi e-postanızla)
+2. Davet kodunu yapıştırın (veya QR tarayın)
+3. **"Katılma İsteği Gönder"** → onay beklenir
+4. Bir aile bireyi onaylayınca senkron otomatik başlar
 
 ---
 
@@ -97,26 +103,16 @@ adb install app/build/outputs/apk/release/app-release.apk
 ```
 
 ### Production Modu:
-```json
-{
-  "rules": {
-    "aile_grubu": {
-      "$group_id": {
-        ".read": "auth != null",
-        ".write": "auth != null",
-        "uyeler": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        },
-        "veriler": {
-          ".read": "auth != null",
-          ".write": "auth != null"
-        }
-      }
-    }
-  }
-}
-```
+`firebase/database.rules.json` dosyasını olduğu gibi yayınlayın. Özet:
+
+- Tüm veri tabloları (görev, alışveriş, mesaj, not, hatırlatıcı, sağlık, spor, bütçe…)
+  yalnızca **onaylı üyeler** tarafından okunur/yazılır.
+- `meta/passcodeHash` yalnızca üyeler tarafından okunur (onaylarken şifre doğrulaması için).
+- `joins/{uid}` yalnızca istek sahibi ve mevcut üyeler tarafından görülür.
+- Üye erişimini kesmek için `meta/members/{uid}` düğümü silinir.
+
+> ⚠️ Grup kimliği ailenin gizli anahtarıdır; uygulama tarafından 16 karakterlik
+> rastgele üretilir. Grup kimliğini bilen ama aile şifresi/onayı olmayan kişi katılamaz.
 
 ---
 
@@ -137,6 +133,12 @@ adb logcat | grep -i firebase
 ---
 
 ## 🔄 Güncelleme Akışı
+
+### Şema Değişiklikleri:
+- `fallbackToDestructiveMigration()` kullanıldığı için Room şeması değişirse cihaz verisi silinir.
+  Şema değiştirmeden önce gerçek bir `Migration` yazmayı tercih edin.
+- Veritabanı (`firebase/database.rules.json`) yapısı: `meta/` (üyelik), `joins/` (istekler),
+  ve veri tabloları. Yapı değişirse kuralları da güncelleyin.
 
 ### Yeni Versiyon Yayınlama:
 1. `build.gradle.kts`'de versiyonu artırın
