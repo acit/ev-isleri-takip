@@ -30,7 +30,7 @@ struct TodosView: View {
         
         // Search
         if !searchText.isEmpty {
-            result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) || $0.description.localizedCaseInsensitiveContains(searchText) }
+            result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) || $0.desc.localizedCaseInsensitiveContains(searchText) }
         }
         
         // Sort
@@ -152,8 +152,8 @@ struct TaskRow: View {
                     .font(.headline)
                     .strikethrough(task.status == "tamamlanan")
                 
-                if !task.description.isEmpty {
-                    Text(task.description)
+                if !task.desc.isEmpty {
+                    Text(task.desc)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(2)

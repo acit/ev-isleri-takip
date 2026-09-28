@@ -165,7 +165,7 @@ struct SyncDataCoordinator {
     // MARK: - tasks
 
     private func taskToMap(_ t: Task) -> [String: Any] {
-        ["id": t.id, "title": t.title, "description": t.description, "category": t.category,
+        ["id": t.id, "title": t.title, "description": t.desc, "category": t.category,
          "priority": t.priority, "assignee": t.assignee, "status": t.status, "dueDate": t.dueDate,
          "createdAt": Self.millis(t.createdAt), "completedAt": Self.millis(t.completedAt),
          "syncVersion": Self.millis(t.syncVersion)]
@@ -180,7 +180,7 @@ struct SyncDataCoordinator {
                             category: Self.str(d["category"]), priority: Self.str(d["priority"]),
                             assignee: Self.str(d["assignee"]), status: Self.str(d["status"]), dueDate: Self.str(d["dueDate"])) },
                update: { t in
-                   t.title = Self.str(d["title"]); t.description = Self.str(d["description"])
+                   t.title = Self.str(d["title"]); t.desc = Self.str(d["description"])
                    t.category = Self.str(d["category"]); t.priority = Self.str(d["priority"])
                    t.assignee = Self.str(d["assignee"]); t.status = Self.str(d["status"])
                    t.dueDate = Self.str(d["dueDate"]); t.createdAt = Self.date(d["createdAt"])
@@ -287,7 +287,7 @@ struct SyncDataCoordinator {
 
     private func expenseToMap(_ e: Expense) -> [String: Any] {
         ["id": e.id, "budgetId": e.budgetId, "category": e.category, "amount": e.amount,
-         "description": e.description, "expenseDate": e.expenseDate,
+         "description": e.desc, "expenseDate": e.expenseDate,
          "createdAt": Self.millis(e.createdAt), "syncVersion": Self.millis(e.syncVersion)]
     }
 
@@ -299,7 +299,7 @@ struct SyncDataCoordinator {
                                expenseDate: Self.str(d["expenseDate"])) },
                update: { e in
                    e.budgetId = Self.str(d["budgetId"]); e.category = Self.str(d["category"])
-                   e.amount = Self.double(d["amount"]); e.description = Self.str(d["description"])
+                   e.amount = Self.double(d["amount"]); e.desc = Self.str(d["description"])
                    e.expenseDate = Self.str(d["expenseDate"])
                    e.createdAt = Self.date(d["createdAt"]); e.syncVersion = Self.date(d["syncVersion"])
                })
@@ -486,7 +486,7 @@ struct SyncDataCoordinator {
     // MARK: - reminders
 
     private func reminderToMap(_ r: Reminder) -> [String: Any] {
-        ["id": r.id, "title": r.title, "description": r.description,
+        ["id": r.id, "title": r.title, "description": r.desc,
          "reminderTime": Self.millis(r.reminderTime), "repeatType": r.repeatType,
          "repeatDays": r.repeatDays, "repeatInterval": r.repeatInterval,
          "repeatEndDate": Self.millis(r.repeatEndDate), "category": r.category,
@@ -507,7 +507,7 @@ struct SyncDataCoordinator {
                                 category: Self.str(d["category"]), priority: Self.str(d["priority"]),
                                 alarmSound: Self.str(d["alarmSound"]), createdBy: Self.str(d["createdBy"])) },
                update: { r in
-                   r.title = Self.str(d["title"]); r.description = Self.str(d["description"])
+                   r.title = Self.str(d["title"]); r.desc = Self.str(d["description"])
                    r.reminderTime = reminderDate; r.repeatType = Self.str(d["repeatType"])
                    r.repeatDays = Self.str(d["repeatDays"]); r.repeatInterval = Self.int(d["repeatInterval"])
                    r.category = Self.str(d["category"]); r.priority = Self.str(d["priority"])

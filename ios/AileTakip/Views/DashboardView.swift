@@ -116,8 +116,8 @@ struct FeatureCard: View {
         }
         .padding()
         .background(Color(.systemBackground))
-        .glassEffect(.regular)
         .cornerRadius(12)
+        .shadow(color: .black.opacity(0.06), radius: 4, y: 2)
     }
 }
 

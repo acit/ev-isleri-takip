@@ -80,7 +80,7 @@ struct RemindersView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(reminder.title)
                             .strikethrough(reminder.isCompleted)
-                        Text(reminder.description)
+                        Text(reminder.desc)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -535,9 +535,7 @@ struct SyncSettingsView: View {
             if case .pending = sync.membership { canAutoJoin = false }
             if canAutoJoin {
                 sync.setGroup(invite.groupId)
-                Swift.Task {
-                    _ = await sync.requestJoin(passcode: invite.passcode, memberName: memberName)
-                }
+                run { svc in _ = await svc.requestJoin(passcode: invite.passcode, memberName: memberName) }
             }
         } else {
             // Davet kodu değilse düz grup kimliği olarak kabul et
@@ -737,9 +735,9 @@ struct SyncSettingsView: View {
     private func run(_ operation: @escaping (FirebaseSyncService) async -> Void) {
         busy = true
         statusMessage = ""
-        Swift.Task {
+        Task { @MainActor in
             await operation(sync)
-            await MainActor.run { busy = false }
+            busy = false
         }
     }
 

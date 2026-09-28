@@ -341,7 +341,7 @@ struct ExpenseRow: View {
                 )
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(expense.description.isEmpty ? expense.category : expense.description)
+                Text(expense.desc.isEmpty ? expense.category : expense.desc)
                     .font(.headline)
                 HStack {
                     Text(expense.category)

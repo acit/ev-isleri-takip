@@ -97,7 +97,7 @@ final class FirebaseSyncService: ObservableObject {
         self.client = client
         self.uid = client.uid
         if client.isSignedIn {
-            membership = .notMember(uid ?? "")
+            membership = .notMember(uid: uid ?? "")
         }
     }
 
@@ -118,7 +118,7 @@ final class FirebaseSyncService: ObservableObject {
         do {
             let result = try await client.signUp(email: email, password: password)
             uid = result.uid
-            membership = .notMember(result.uid)
+            membership = .notMember(uid: result.uid)
             return .success(uid: result.uid)
         } catch {
             return .error((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
@@ -129,7 +129,7 @@ final class FirebaseSyncService: ObservableObject {
         do {
             let result = try await client.signIn(email: email, password: password)
             uid = result.uid
-            membership = .notMember(result.uid)
+            membership = .notMember(uid: result.uid)
             return .success(uid: result.uid)
         } catch {
             return .error((error as? LocalizedError)?.errorDescription ?? error.localizedDescription)
@@ -187,7 +187,7 @@ final class FirebaseSyncService: ObservableObject {
                 "passcodeProof": FirebaseSyncClient.sha256Hex(passcode),
                 "status": "pending", "requestedAt": now
             ])
-            membership = .pending(uid)
+            membership = .pending(uid: uid)
             // Onay gelince otomatik senkrona geçmek için üyeliği izlemeye al
             startLivePolling()
             return membership
@@ -213,13 +213,13 @@ final class FirebaseSyncService: ObservableObject {
             case "approved":
                 return await becomeMember()
             case "rejected":
-                membership = .rejected(uid)
+                membership = .rejected(uid: uid)
                 return membership
             case "pending":
-                membership = .pending(uid)
+                membership = .pending(uid: uid)
                 return membership
             default:
-                membership = .notMember(uid)
+                membership = .notMember(uid: uid)
                 return membership
             }
         } catch {
@@ -303,7 +303,7 @@ final class FirebaseSyncService: ObservableObject {
 
     private func becomeMember() async -> Membership {
         guard let uid = uid else { return .signedOut }
-        membership = .member(uid)
+        membership = .member(uid: uid)
         syncState = .connected
         if let gid = groupId {
             groupPasscodeHash = try? await client.get(path: "aile_grubu/\(gid)/meta/passcodeHash") as? String
@@ -449,14 +449,14 @@ final class FirebaseSyncService: ObservableObject {
     /// Uygulama açıkken uzak değişiklikleri belirli aralıklla çeker.
     /// Android'deki ValueEventListener'ın REST karşılığıdır: SDK canlı soket
     /// dinleyemediği için polling kullanır (varsayılan 30 saniye).
-    private var pollingTask: Swift.Task<Void, Never>?
+    private var pollingTask: Task<Void, Never>?
 
     func startLivePolling(interval: TimeInterval = 30) {
         guard pollingTask == nil else { return }  // çift başlatma koruması
-        pollingTask = Swift.Task { [weak self] in
-            while !Swift.Task.isCancelled {
-                try? await Swift.Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
-                guard !Swift.Task.isCancelled else { break }
+        pollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                guard !Task.isCancelled else { break }
                 await self?.pollTick()
             }
         }
@@ -484,7 +484,7 @@ final class FirebaseSyncService: ObservableObject {
     func disconnect() {
         stopLivePolling()
         syncState = .disconnected
-        if let uid = uid { membership = .notMember(uid) }
+        if let uid = uid { membership = .notMember(uid: uid) }
     }
 }
 

@@ -48,7 +48,7 @@ final class FamilyMember {
 final class Task {
     var id: String
     var title: String
-    var description: String
+    var desc: String
     var category: String
     var priority: String
     var assignee: String
@@ -61,13 +61,14 @@ final class Task {
     init(id: String = UUID().uuidString, title: String, description: String = "", category: String = "Genel", priority: String = "orta", assignee: String = "", status: String = "bekleyen", dueDate: String = "") {
         self.id = id
         self.title = title
-        self.description = description
+        self.desc = description
         self.category = category
         self.priority = priority
         self.assignee = assignee
         self.status = status
         self.dueDate = dueDate
         self.createdAt = Date()
+        self.completedAt = nil
         self.syncVersion = Date()
     }
 }
@@ -157,7 +158,7 @@ final class Note {
 final class Reminder {
     var id: String
     var title: String
-    var description: String
+    var desc: String
     var reminderTime: Date
     var repeatType: String      // once, daily, weekly, monthly, custom
     var repeatDays: String      // Custom: "1,3,5"
@@ -182,7 +183,7 @@ final class Reminder {
     init(id: String = UUID().uuidString, title: String, description: String = "", reminderTime: Date, repeatType: String = "once", category: String = "Genel", priority: String = "orta", alarmSound: String = "default", createdBy: String = "") {
         self.id = id
         self.title = title
-        self.description = description
+        self.desc = description
         self.reminderTime = reminderTime
         self.repeatType = repeatType
         self.repeatDays = ""
@@ -265,7 +266,7 @@ final class Expense {
     var budgetId: String
     var category: String
     var amount: Double
-    var description: String
+    var desc: String
     var expenseDate: String
     var createdAt: Date
     var syncVersion: Date
@@ -275,7 +276,7 @@ final class Expense {
         self.budgetId = budgetId
         self.category = category
         self.amount = amount
-        self.description = description
+        self.desc = description
         self.expenseDate = expenseDate
         self.createdAt = Date()
         self.syncVersion = Date()

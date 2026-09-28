@@ -142,8 +142,10 @@ class MainViewModel: ObservableObject {
     }
     
     private func fetchNotes() {
-        let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.isPinned, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)])
-        notes = (try? modelContext.fetch(descriptor)) ?? []
+        let descriptor = FetchDescriptor<Note>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        var fetched = (try? modelContext.fetch(descriptor)) ?? []
+        fetched.sort { ($0.isPinned ? 1 : 0, $0.createdAt) > ($1.isPinned ? 1 : 0, $1.createdAt) }
+        notes = fetched
     }
     
     private func fetchReminders() {
@@ -447,7 +449,7 @@ class MainViewModel: ObservableObject {
     }
     
     // MARK: - Helpers
-    private func save() {
+    func save() {
         try? modelContext.save()
         scheduleSyncPush()
     }
@@ -473,9 +475,9 @@ class MainViewModel: ObservableObject {
     private func scheduleSyncPush() {
         guard autoSyncEnabled, syncService.membership.isMember else { return }
         pendingSyncTask?.cancel()
-        pendingSyncTask = Swift.Task { [weak self] in
-            try? await Swift.Task.sleep(nanoseconds: 2_000_000_000)
-            guard !Swift.Task.isCancelled else { return }
+        pendingSyncTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            guard !Task.isCancelled else { return }
             guard let self else { return }
             for table in SyncTables.all {
                 await self.syncService.syncTable(table)
@@ -491,7 +493,7 @@ class MainViewModel: ObservableObject {
             syncService.setGroup(savedGroup)
         }
         if syncService.isSignedIn, currentGroupId.isEmpty == false {
-            Swift.Task {
+            Task { @MainActor in
                 _ = await syncService.refreshMembership()
             }
         }
