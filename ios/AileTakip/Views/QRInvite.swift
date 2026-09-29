@@ -88,8 +88,6 @@ struct QRCodeImage: View {
 struct QRScannerView: UIViewRepresentable {
 
     var onScanned: (String) -> Void
-    /// Kamera hiç açılamazsa (simülatör/izin yok) çağrılır.
-    var onUnavailable: ((CameraUnavailableReason) -> Void)? = nil
 
     final class PreviewView: UIView {
         override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
@@ -102,24 +100,14 @@ struct QRScannerView: UIViewRepresentable {
         private var started = false
         private var lastValue: String?
         private var lastTime = Date.distantPast
-        /// Kamera açılamadığında (simülatör / izin yok / donanım yok) UI'ya haber verir.
-        var onUnavailable: ((CameraUnavailableReason) -> Void)?
 
         init(_ parent: QRScannerView) { self.parent = parent }
 
         func start() {
             guard !started else { return }
             started = true
-            // Simülatörde kamera donanımı yok: talep etmeden kontrol et.
-            guard AVCaptureDevice.default(for: .video) != nil else {
-                DispatchQueue.main.async { self.onUnavailable?(.noCamera) }
-                return
-            }
             AVCaptureDevice.requestAccess(for: .video) { granted in
-                guard granted else {
-                    DispatchQueue.main.async { self.onUnavailable?(.permissionDenied) }
-                    return
-                }
+                guard granted else { return }
                 DispatchQueue.global(qos: .userInitiated).async {
                     self.configureAndRun()
                 }
@@ -129,16 +117,10 @@ struct QRScannerView: UIViewRepresentable {
         private func configureAndRun() {
             guard let device = AVCaptureDevice.default(for: .video),
                   let input = try? AVCaptureDeviceInput(device: device),
-                  session.canAddInput(input) else {
-                DispatchQueue.main.async { self.onUnavailable?(.noCamera) }
-                return
-            }
+                  session.canAddInput(input) else { return }
             session.addInput(input)
             let output = AVCaptureMetadataOutput()
-            guard session.canAddOutput(output) else {
-                DispatchQueue.main.async { self.onUnavailable?(.noCamera) }
-                return
-            }
+            guard session.canAddOutput(output) else { return }
             session.addOutput(output)
             output.setMetadataObjectsDelegate(self, queue: .main)
             output.metadataObjectTypes = [.qr]
@@ -172,7 +154,6 @@ struct QRScannerView: UIViewRepresentable {
         let view = PreviewView()
         view.previewLayer.session = context.coordinator.session
         view.previewLayer.videoGravity = .resizeAspectFill
-        context.coordinator.onUnavailable = onUnavailable
         context.coordinator.start()
         return view
     }
@@ -186,31 +167,6 @@ struct QRScannerView: UIViewRepresentable {
     }
 }
 
-// MARK: - Kamera kullanılamama nedenleri (UI mesajları için)
-
-enum CameraUnavailableReason {
-    case permissionDenied
-    case noCamera
-
-    var title: String {
-        switch self {
-        case .permissionDenied: return "Kamera erişimi kapalı"
-        case .noCamera: return "Kamera kullanılamıyor"
-        }
-    }
-
-    var message: String {
-        switch self {
-        case .permissionDenied:
-            return "Davet QR kodunu okutmak için Ayarlar → Aile Takip → Kamera iznini açın."
-        case .noCamera:
-            return "Bu cihazda kamera bulunamadı (örn. simülatör). Davet kodunu elle yapıştırabilirsiniz."
-        }
-    }
-
-    var showsSettingsButton: Bool { self == .permissionDenied }
-}
-
 // MARK: - Tarama sayfası (izin + kamera + talimat)
 
 struct QrScanSheet: View {
@@ -219,48 +175,34 @@ struct QrScanSheet: View {
 
     @State private var permissionDenied =
         AVCaptureDevice.authorizationStatus(for: .video) == .denied
-    /// Kamera yok (simülatör) veya akış başlatılamadı durumunda manuel giriş göster.
-    @State private var cameraUnavailable = false
-    @State private var unavailableReason: CameraUnavailableReason?
-    @State private var manualCode = ""
 
     var body: some View {
         VStack(spacing: 16) {
-            if permissionDenied || cameraUnavailable {
+            if permissionDenied {
                 Spacer()
                 Image(systemName: "video.slash.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(.secondary)
-                Text(unavailableReason?.title ?? "Kamera erişimi kapalı")
+                Text("Kamera erişimi kapalı")
                     .font(.headline)
-                Text(unavailableReason?.message
-                    ?? "Davet QR kodunu okutmak için Ayarlar → Aile Takip → Kamera iznini açın.")
+                Text("Davet QR kodunu okutmak için Ayarlar → Aile Takip → Kamera iznini açın.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
-                if unavailableReason?.showsSettingsButton ?? true {
-                    Button("Ayarları Aç") {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
+                Button("Ayarları Aç") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
                     }
-                    .buttonStyle(.borderedProminent)
                 }
-                manualEntrySection
+                .buttonStyle(.borderedProminent)
                 Spacer()
             } else {
                 ZStack {
-                    QRScannerView(
-                        onScanned: { value in
-                            onScanned(value)
-                            dismiss()
-                        },
-                        onUnavailable: { reason in
-                            cameraUnavailable = true
-                            unavailableReason = reason
-                        }
-                    )
+                    QRScannerView { value in
+                        onScanned(value)
+                        dismiss()
+                    }
                     .ignoresSafeArea(edges: .bottom)
 
                     // Okuma çerçevesi
@@ -284,54 +226,12 @@ struct QrScanSheet: View {
         }
         .background(Color.black)
         .onAppear {
-            refreshPermission()
-        }
-        // Ayarlar'dan dönüldüğünde izin durumunu yeniden değerlendir
-        .onReceive(NotificationCenter.default.publisher(
-            for: UIApplication.didBecomeActiveNotification)) { _ in
-            refreshPermission()
-        }
-    }
-
-    /// İzin durumunu tazeler; .denied ise (QRScannerView zaten haber vermiş olabilir)
-    /// kapalı-kamera ekranına geçer.
-    private func refreshPermission() {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .denied, .restricted:
-            permissionDenied = true
-            unavailableReason = .permissionDenied
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                permissionDenied = !granted
-                if !granted { unavailableReason = .permissionDenied }
-            }
-        case .authorized:
-            permissionDenied = false
-        @unknown default:
-            break
-        }
-    }
-
-    /// Kamera kullanılamıyorken davet kodunu elle yapıştırma/giriş bölümü.
-    @ViewBuilder
-    private var manualEntrySection: some View {
-        VStack(spacing: 8) {
-            Text("Davet kodu elle gir")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.secondary)
-            TextField("AILETAKIP:g=...;p=...", text: $manualCode)
-                .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled()
-                .textInputAutocapitalization(.never)
-                .padding(.horizontal, 32)
-            Button("Kodu Kullan") {
-                if FamilyInviteCodec.decode(manualCode) != nil {
-                    onScanned(manualCode)
-                    dismiss()
+            // İzin ilk kez soruluyorken sayfa açıkken kararı yenile
+            if AVCaptureDevice.authorizationStatus(for: .video) == .notDetermined {
+                AVCaptureDevice.requestAccess(for: .video) { granted in
+                    permissionDenied = !granted
                 }
             }
-            .buttonStyle(.bordered)
-            .disabled(FamilyInviteCodec.decode(manualCode) == nil)
         }
     }
 }
